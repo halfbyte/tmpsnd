@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head></head>
+<style type="text/css" media="screen">
+  body { font-family: 'courier new'; background: #000; color: #f8f8f8;}
+  #pattern-edit {
+    overflow: scroll;
+    height: 600px;
+    border: 2px solid #800; margin-top: 1em; padding: 1em;
+  }
+  .current-line {
+    background: #333;
+  }
+  input.note, input.param {
+    font-family: 'courier new';
+    border: none;
+    background-color: #ccc;
+    font-size: 1em;
+  }
+  
+</style>
+<body>  
+  
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="song_2.js"></script>
+  <script src="tmpsnd_editor.js"></script>
+  <h1>tmpsnd.edit</h1>
+  <div id="song-edit"></div>
+  <div>
+    <label>Instrument:<select id="instrument-select"></select></label>
+  </div>  
+  <div id="instrument-edit"></div>
+  <div>
+    <label>Pattern:<select id="pattern-select"></select></label>
+  </div>
+  <div id="pattern-edit"></div>
+  
+  
+</body>
+</html>
