@@ -2,7 +2,7 @@ snd = new SND({
   cfg: {tempo: 140},
   sends: [[SND.DEL, {t: 3*15 / 140}], [SND.REV, {t: 10, d: 0.02, m: 1}], [SND.DELREV, {}]],
   instruments: [
-    [SND.Drum, {sw: 0.02, d: 0.2, st: 300, en: 50, v: 0.5, s: [0.0]}],
+    [SND.Drum, {sw: 0.04, d: 0.2, st: 300, en: 50, v: 0.5, s: [0.0]}],
     [SND.Synth, {q: 2, d: 0.5, fm: 1800, f: 200, s: [0, 0, 1], t: 'square', v: 0.1}],
     [SND.Noise, {q: 10, d: 0.04, ft: 'highpass', f: 8000, v: 0.1, s: [0.3, 0.2]}]
   ],
