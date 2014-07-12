@@ -209,11 +209,17 @@
       var conf = data[1] || {};
       var opts = SND.extend(that.options, conf);
       var osc = that.ac.createOscillator();
+      var click = that.ac.createOscillator();
+      click.type = "square";
       SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.sw);
-      var amp = SND.DCA(that.ac, osc, opts.v, t, 0.001, opts.d);
+      SND.AD(click.frequency, opts.en, 100, t, 0, 0.001);
+      var amp = SND.DCA(that.ac, osc, opts.v, t, 0.005, opts.d);
+      var ampclick = SND.DCA(that.ac, click, opts.v, t, 0.005, 0.5);
       amp.connect(that.ac.destination);
+      ampclick.connect(that.ac.destination);
       SND.sends(that.ac, sends, opts.s, amp);
       osc.start(t);osc.stop(t + 0.001 + opts.d);
+      click.start(t);click.stop(t + 0.009);
     }
     that.play = that.play.bind(that);
     return that;
