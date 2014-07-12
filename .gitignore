@@ -1,0 +1,3 @@
+tools/*.jar
+*.min.js
+out.js

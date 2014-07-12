@@ -1,4 +1,6 @@
 (function(w) {
+  // change that to true to log
+  function log(msg) { if (false) { console.log(msg); }}
   w.SND = function(song) {
     var t = this;
     t.song = song;
@@ -20,7 +22,7 @@
       t.instruments.push(instrObj);
     });
     
-    console.log('SND.constr', this);
+    log('SND.constr', this);
     this.p = this.p.bind(this);
 
     return t;
@@ -87,15 +89,15 @@
     var patternTime = stepTime * 64;
     var currentPos = 0;
     var currentTime = this.c.currentTime;
-    patternScheduler = function() {
+    var patternScheduler = function() {
       if (currentTime - this.c.currentTime < (patternTime / 4)) {
         var stepTimes = [];
         for(i=0;i<64;i++) { stepTimes[i] = currentTime + (stepTime * i); }
         var cP = this.song.playlist[currentPos];
-        console.log(cP);
+        log(cP);
         for (var instrId in cP) {
           if (cP.hasOwnProperty(instrId)) {
-            console.log("scheduling", cP[instrId], "for", instrId)
+            log("scheduling", cP[instrId], "for", instrId)
             this.instruments[instrId].pp(stepTimes, stepTime, this.song.patterns[cP[instrId]]); 
           }
         }
