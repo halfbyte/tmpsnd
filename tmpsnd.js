@@ -251,5 +251,29 @@
     that.play = that.play.bind(that);
     return that;
   }
-  
+
+  SND.Sub = function(ac, sends, options) {
+    var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
+    that.play = function(t, stepTime, data) {
+      var note = data[0];
+      var conf = data[1] || {};
+      var opts = SND.extend(that.options, conf);
+
+      var osc = that.ac.createOscillator();
+      var f = SND.n2f(note);
+      osc.frequency.value = f;
+      osc.type = opts.t;
+      len = stepTime * (conf.l || 1);
+      var amp = SND.DCA(this.ac, osc, opts.v, t, 0.01, len);
+      // portamento/bass drop
+      if (opts.dn) {
+        SND.AD(osc.frequency, SND.n2f(opts.dn), f, t, 0, len);
+      }
+      amp.connect(ac.destination);
+      osc.start(t);osc.stop(t + len);
+    }
+    that.play = that.play.bind(that);
+    return that;
+  }
+
 })(window);
