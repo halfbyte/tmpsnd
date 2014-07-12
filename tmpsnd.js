@@ -34,10 +34,10 @@
   SND.n2f = function(n) {
     return Math.pow(2, (n - 69) / 12) * 440;
   }
-  SND.AD = function(p, l, u, t, a, d) {
+  SND.AD = function(p/*aram*/, l/*start*/, u/*end*/, t/*startTime*/, a/*attack*/, d/*decay*/) {
     p.setValueAtTime(l, t);
     p.linearRampToValueAtTime(u, t + a);
-    p.setValueAtTime(u, t + a);
+    // XXX change that to setTargetAtTime
     p.linearRampToValueAtTime(l, t + d);
   };
   SND.DCA = function(ac, i, v, t, a, d) {
@@ -94,11 +94,10 @@
         var cP = this.song.playlist[currentPos];
         console.log(cP);
         for (var instrId in cP) {
-          
           if (cP.hasOwnProperty(instrId)) {
             console.log("scheduling", cP[instrId], "for", instrId)
             this.instruments[instrId].pp(stepTimes, stepTime, this.song.patterns[cP[instrId]]); 
-          }          
+          }
         }
         currentPos = (currentPos + 1) % this.song.playlist.length;
         currentTime += patternTime;
@@ -178,7 +177,7 @@
       if (data[i] != 0) {
         this.play(t, stepTime, data[i]);
       }
-    }, this);    
+    }, this);
   };
   SND.Noise = function(ac, sends, options) {
     var that = new SND.SProto(ac, sends, options, {q: 10, d: 0.05, ft: 'highpass', f: 8000, v: 0.1, s: []});
