@@ -1,0 +1,5 @@
+tools/*.jar
+*.min.js
+out.js
+tmpsnd.min.js
+demo.png.html
