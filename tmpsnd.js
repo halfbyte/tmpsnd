@@ -252,6 +252,21 @@
     that.play = that.play.bind(that);
     return that;
   };
+
+  SND.Snare = function(ac, sends, options) {
+    var that = new SND.SProto(ac, sends, options, {sw: 0.05, d:0.1, st:200, en:50,v:0.5, s:[]});
+    // snare: drum with a higher fundamental + noise
+    that.d = new SND.Drum(ac, sends, options);
+    // less tail
+    options.v /= 4;
+    that.n = new SND.Noise(ac, sends, options);
+    that.play =  function(t, stepTime, data) {
+      that.d.play(t, stepTime, data);
+      that.n.play(t, stepTime, data);
+    };
+    that.play = that.play.bind(that);
+    return that;
+  };
   SND.Synth = function(ac, sends, options) {
     var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', q: 10, f: 200, fm: 1000, d: 1.0, v: 0.5, s: []});    
     that.play = function(t, stepTime, data) {
