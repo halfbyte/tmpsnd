@@ -17,15 +17,36 @@
     background-color: #ccc;
     font-size: 1em;
   }
+  h1 {
+    margin:0; padding:0;
+    line-height: 0.5em;
+    border-bottom: 1px solid #fff;
+    overflow: hidden;
+  }
+  .export-overlay {
+    width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #ccc;
+  }
+  a:link,a:visited {
+    color: #f00;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #ff0;
+  }
   
 </style>
 <body>  
   
   <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
   <script src="song_2.js"></script>
+  <script src="tmpsnd.js"></script>
   <script src="tmpsnd_editor.js"></script>
   <h1>tmpsnd.edit</h1>
-  <div id="song-edit"></div>
+  <nav class="menu"><ul>
+    <li><a href="#" data-cmd="save">SAVE</a>
+      <li><a href="#" data-cmd="export">EXPORT</a>
+  </ul></nav>
+  <table id="song-edit"></table>
   <div>
     <label>Instrument:<select id="instrument-select"></select></label>
   </div>  

@@ -1,11 +1,17 @@
 $(function() {
   
   var NOTENAMES = ['C-','C#','D-','D#','E-','F-','F#','G-','G#','A-','A#','B-'];
-  
+
   var s = SONG;
 
-
-
+  if (localStorage['tmpsnd.songs.winning']) {
+    console.log("loading from localstorage");
+    s = JSON.parse(localStorage['tmpsnd.songs.winning'])
+  }
+  
+  var $songContainer = $('#song-edit');
+  renderSong();
+  
   var $instrumentSelector = $('#instrument-select');
   $instrumentSelector.on('change', function(e) { cmd.changeinstrument($(this).val()); } )
 
@@ -33,6 +39,11 @@ $(function() {
     }
     
   })
+
+  $('[data-cmd]').click(function(e) {
+    cmd[$(e.target).data('cmd')]();
+    e.preventDefault();
+  });
   
   var $patternSelector = $('#pattern-select');
   $patternSelector.on('change', function(e) { cmd.changepattern($(this).val()); } )
@@ -80,8 +91,20 @@ $(function() {
         value = $('input.param').val()
         if (typeof(value) !== 'undefined') submitParam(value);
       }
+    },
+    save: function() {
+      console.log("Saving", s)
+      localStorage['tmpsnd.songs.winning'] = JSON.stringify(s);
+    },
+    'export': function() {
+      console.log("export")
+      $('body').append("<div class='export-overlay'><textarea cols=80 rows=20>" + JSON.stringify(s) + "</textarea><button id='close-export-overlay'>CLOSE</button></div>");
+      $('.export-overlay textarea').focus(function() {this.select();});
+      $('.export-overlay #close-export-overlay').click(function(e) {
+        e.preventDefault();
+        $('.export-overlay').remove();
+      })
     }
-    
     
   };
   
@@ -93,7 +116,9 @@ $(function() {
       p = p.trim();
       all = p.split(":")
       if (all.length == 2) {
-        newParams[all[0].trim()] = all[1];
+        value = parseFloat(all[1]);
+        if (isNaN(value)) value = all[1].trim();
+        newParams[all[0].trim()] = value;
       }
     });
     if (typeof(noteInPattern) === 'object') {
@@ -121,8 +146,11 @@ $(function() {
         res = not.match(/([A-G][-#]?)(\d)/)
         if (res) {
           notename = res[1]
+          console.log("N",notename)
           if (notename.length == 1) notename = notename + "-";
-          key = NOTENAMES.indexOf(res[1]);
+          console.log("NA",notename)
+          key = NOTENAMES.indexOf(notename);
+          console.log("KEY", key)
           if (key != -1) {
             oct = parseInt(res[2],10)
             notes[i] = (12 * oct) + key;
@@ -169,6 +197,28 @@ $(function() {
     state.currentLine = 0;
     state.currentColumn = 0;
     renderCurrentPattern()
+  }
+  
+  function renderSong() {
+    $songContainer.html();
+    var headers = "";
+    s.instruments.forEach(function(inst, i) {
+      headers += "<th>" + i + ": " + inst[0] + "</th>";
+    });
+    $songContainer.append('<thead><tr>' + headers + "</tr></thead>");
+    var lines = "";
+    s.playlist.forEach(function(pos, i) {
+      var line = "";
+      s.instruments.forEach(function(inst, i) {
+        if (typeof(pos[i]) !== 'undefined') {
+          line += "<td>" + pos[i] + "</td>";
+        } else {
+          line += "<td></td>";
+        }
+      });
+      lines += "<tr>" + line + "</tr>";
+    })
+    $songContainer.append('<tbody>' + lines + "</thead>");
   }
   
   function renderCurrentPattern () {
@@ -260,5 +310,8 @@ $(function() {
   
   
   init();
+  
+  // SND extensions  
+  
   
 })

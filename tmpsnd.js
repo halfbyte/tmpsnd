@@ -1,4 +1,12 @@
 (function(w) {
+  
+  w.nTO = function(name) {
+    if (typeof(name) !== 'string') return name;
+    var subnames = name.split(".");
+    return window[subnames[0]][subnames[1]];
+  };
+  
+  
   w.SND = function(song) {
     var t = this;
     t.song = song;
@@ -8,23 +16,33 @@
       t.c = new AudioContext();
     }
     
-    t.sends = [];
-    t.instruments = [];
-    song.sends.forEach(function(send, index) {
-      sendObj = new send[0](t.c, send[1]);
-      sendObj.connect(t.c.destination);
-      t.sends.push(sendObj);
-    });
-    song.instruments.forEach(function(instr, index) {
-      instrObj = new instr[0](t.c, t.sends, instr[1]);
-      t.instruments.push(instrObj);
-    });
-    
+    t.sends = SND.initSends(song.sends, t.c);
+    t.instruments = SND.initInstruments(song.instruments,t.c, t.sends);
     console.log('SND.constr', this);
     this.p = this.p.bind(this);
 
     return t;
   };
+  
+  SND.initSends = function(sends, c) {
+    var _sends = [];
+    sends.forEach(function(send, index) {
+      sendObj = new (nTO(send[0]))(c, send[1]);
+      sendObj.connect(c.destination);
+      _sends.push(sendObj);
+    });
+    return _sends;
+  }
+  SND.initInstruments = function(instruments,c,sends) {
+    var _instruments = [];
+    instruments.forEach(function(instr, index) {
+      instrObj = new (nTO(instr[0]))(c, sends, instr[1]);
+      _instruments.push(instrObj);
+    });
+    return _instruments;    
+  };
+  
+  
   SND.extend = function(o, o2) {
     var o1 = {};
     for (var attrname in o) { o1[attrname] = o[attrname]; }
@@ -74,7 +92,7 @@
   }
   
   
-  SND.sends = function(ac, sends, s, out) {
+  SND.setSends = function(ac, sends, s, out) {
     sends.forEach(function(send, i) {
       var amp = ac.createGain();
       amp.gain.value = s[i] || 0.0;
@@ -88,7 +106,9 @@
     var currentPos = 0;
     var currentTime = this.c.currentTime;
     patternScheduler = function() {
+      
       if (currentTime - this.c.currentTime < (patternTime / 4)) {
+        console.time("SCHEDULER")
         var stepTimes = [];
         for(i=0;i<64;i++) { stepTimes[i] = currentTime + (stepTime * i); }
         var cP = this.song.playlist[currentPos];
@@ -97,13 +117,16 @@
           
           if (cP.hasOwnProperty(instrId)) {
             console.log("scheduling", cP[instrId], "for", instrId)
-            this.instruments[instrId].pp(stepTimes, stepTime, this.song.patterns[cP[instrId]]); 
+            var data = this.song.patterns[instrId][cP[instrId]];
+            this.instruments[instrId].pp(stepTimes, stepTime, data); 
           }          
         }
         currentPos = (currentPos + 1) % this.song.playlist.length;
         currentTime += patternTime;
+        console.timeEnd("SCHEDULER")
       }      
       setTimeout(patternScheduler, 40);
+      
     };
     patternScheduler = patternScheduler.bind(this);
     patternScheduler();
@@ -175,12 +198,17 @@
   };
   SND.SProto.prototype.pp = function(times, stepTime, data) {
     times.forEach(function(t, i) {
-      if (data[i] != 0) {
-        this.play(t, stepTime, data[i]);
+      note = data[i];
+      if (typeof(note) !== 'object') {
+        note = [note, {}]
+      }
+      if (note[0] != 0) {
+        this.play(t, stepTime, note);
       }
     }, this);    
   };
   SND.Noise = function(ac, sends, options) {
+    console.log("INIT NOISE", ac, sends, options)
     var that = new SND.SProto(ac, sends, options, {q: 10, d: 0.05, ft: 'highpass', f: 8000, v: 0.1, s: []});
     var noise = SND.NoiseBuffer(ac);
     var opts = that.options;
@@ -196,7 +224,7 @@
       flt.Q.value = opts.q;
       smp.buffer = noise;
       smp.connect(amp);
-      SND.sends(that.ac, sends, opts.s, amp);
+      SND.setSends(that.ac, sends, opts.s, amp);
       amp.connect(that.ac.destination);      
       smp.start(t);smp.stop(t + 0.001 + opts.d);
     }
@@ -212,7 +240,7 @@
       SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.sw);
       var amp = SND.DCA(that.ac, osc, opts.v, t, 0.001, opts.d);
       amp.connect(that.ac.destination);
-      SND.sends(that.ac, sends, opts.s, amp);
+      SND.setSends(that.ac, sends, opts.s, amp);
       osc.start(t);osc.stop(t + 0.001 + opts.d);
     }
     that.play = that.play.bind(that);
@@ -238,7 +266,7 @@
       len = stepTime * (conf.l || 1);
       osc.connect(flt);
       var amp = SND.DCA(this.ac, flt, opts.v, t, 0.01, len);
-      SND.sends(that.ac, sends, opts.s, amp);
+      SND.setSends(that.ac, sends, opts.s, amp);
       amp.connect(ac.destination);
       SND.AD(flt.frequency, opts.f, opts.f + opts.fm, t, 0.01, len * opts.d);
       osc.start(t);osc.stop(t + len);
