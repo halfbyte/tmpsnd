@@ -48,6 +48,15 @@
     SND.AD(g.gain, 0, v, t, a, d);
     return g;
   };
+  SND.LFO = function(ac, t, p, g, f)  {
+    var o = ac.createOscillator();
+    o.frequency.value = f * (140 / 120); // fetch tempo here.
+    var s = ac.createGain();
+    s.gain.value = g;
+    o.connect(s);
+    s.connect(p);
+    o.start(t); o.stop(t + 10); // long tail
+  }
   SND.NoiseBuffer = function(ac) {
     var i,l;
     if (typeof(SND._noisebuffer) == 'undefined') {
@@ -181,7 +190,7 @@
     this.ac = ac;
     var ws = ac.createWaveShaper();
     this.mix = ac.createGain();
-    ws.buffer = S.DistCurve(ac, opts.a);
+    ws.buffer = SND.DistCurve(ac, opts.a);
     this.mix.gain.value = opts.m;
     ws.connect(this.mix);
     this.connect = function(node) {
@@ -326,45 +335,27 @@
       var note = data[0];
       var conf = data[1] || {};
       var opts = SND.extend(that.options, conf);
-
-      var osc1 = that.ac.createOscillator();
-      var osc2 = that.ac.createOscillator();
-      var f = SND.n2f(note);
-      osc1.frequency.value = osc2.frequency.value = f;
-      osc1.type = osc2.type = opts.t;
-      osc1.frequency.value = f;
-      osc2.detune.value = 50; // a semitone
-      len = stepTime * (conf.l || 1);
-      var amp = SND.DCA(this.ac, osc1, opts.v, t, 0.00, len);
-      var amp2 = SND.DCA(this.ac, osc2, opts.v, t, 0.00, len);
-
-      // portamento
-      if (opts.dn) {
-        SND.AD(osc1.frequency, SND.n2f(opts.dn), f, t, 0, len);
-        SND.AD(osc2.frequency, SND.n2f(opts.dn), f, t, 0, len);
-      }
+      var len = stepTime * (conf.l || 1);
 
       var flt = ac.createBiquadFilter();
-      var lfo = ac.createOscillator();
-      lfo.frequency.value = opts.lfo * (140 / 120);
-      lfo.type = "sine";
-      var lfogain = ac.createGain();
-      lfogain.gain.value = opts.co;
-      lfo.connect(lfogain);
-      lfogain.connect(flt.frequency);
-      lfo.start(t); lfo.stop(t + 10);
+      SND.LFO(ac, t, flt.frequency, opts.co, opts.lfo)
 
-      amp.connect(flt);
-      amp2.connect(flt);
-
+      for (var i = 0; i < 2; i++) {
+        o = that.ac.createOscillator();
+        g = SND.DCA(this.ac, o, opts.v, t, 0, len);
+        if (opts.dn) {
+          SND.AD(o.frequency, SND.n2f(opts.dn), d, t, 0, len);
+        }
+        o.frequency.value = SND.n2f(note);
+        o.type = opts.t;
+        o.detune.value = i * 50;
+        o.connect(g);
+        g.connect(flt);
+        o.start(t);o.stop(t+len);
+      }
       SND.sends(that.ac, sends, opts.s, flt);
-
-      osc1.start(t);osc1.stop(t + len);
-      osc2.start(t);osc2.stop(t + len);
     }
     that.play = that.play.bind(that);
     return that;
   }
-
-
 })(window);
