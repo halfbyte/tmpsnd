@@ -16,5 +16,8 @@ ruby tools/pnginator.rb tmpsnd.min.js demo.png.html
 
 echo " -- done."
 
+wc -c tmpsnd.js
+wc -c song_1.js
+wc -c out.js
 wc -c tmpsnd.min.js
 wc -c demo.png.html
