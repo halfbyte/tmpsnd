@@ -74,6 +74,17 @@
     }
     return buffer;
   }
+
+  SND.DistCurve = function(ac, k) {
+    var c = new Float32Array(ac.sampleRate);
+    var deg = Math.PI / 180;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / c.length - 1;
+      c[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+    }
+    return c;
+  }
+
   
   
   SND.sends = function(ac, sends, s, out) {
@@ -164,6 +175,21 @@
     this.connect = this.connect.bind(this);
     return this;
   }
+
+  SND.DIST = function(ac, cfg) {
+    var opts = SND.extend({a: 50}, cfg);
+    this.ac = ac;
+    var ws = ac.createWaveShaper();
+    this.mix = ac.createGain();
+    ws.buffer = S.DistCurve(ac, opts.a);
+    this.mix.gain.value = opts.m;
+    ws.connect(this.mix);
+    this.connect = function(node) {
+      this.mix.connect(node);
+    };
+    this.connect = this.connect.bind(this);
+    this.destination = ws;
+  }
   
   // INSTRUMENTS
   
@@ -172,7 +198,7 @@
     this.sends = sends;
     this.options = SND.extend(defaults, options);
     this.pp = this.pp.bind(this);
-    return this;    
+    return this;
   };
   SND.SProto.prototype.pp = function(times, stepTime, data) {
     times.forEach(function(t, i) {
@@ -277,5 +303,52 @@
     that.play = that.play.bind(that);
     return that;
   }
+
+  SND.Reese = function(ac, sends, options) {
+    var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', v:0.5});
+    that.play = function(t, stepTime, data) {
+      var note = data[0];
+      var conf = data[1] || {};
+      var opts = SND.extend(that.options, conf);
+
+      var osc1 = that.ac.createOscillator();
+      var osc2 = that.ac.createOscillator();
+      var f = SND.n2f(note);
+      osc1.frequency.value = osc2.frequency.value = f;
+      osc1.type = osc2.type = opts.t;
+      osc1.frequency.value = f;
+      osc2.detune.value = 50; // a semitone
+      len = stepTime * (conf.l || 1);
+      var amp = SND.DCA(this.ac, osc1, opts.v, t, 0.00, len);
+      var amp2 = SND.DCA(this.ac, osc2, opts.v, t, 0.00, len);
+
+      // portamento
+      if (opts.dn) {
+        SND.AD(osc1.frequency, SND.n2f(opts.dn), f, t, 0, len);
+        SND.AD(osc2.frequency, SND.n2f(opts.dn), f, t, 0, len);
+      }
+
+      var flt = ac.createBiquadFilter();
+      var lfo = ac.createOscillator();
+      lfo.frequency.value = opts.lfo * (140 / 120);
+      lfo.type = "sine";
+      var lfogain = ac.createGain();
+      lfogain.gain.value = opts.co;
+      lfo.connect(lfogain);
+      lfogain.connect(flt.frequency);
+      lfo.start(t); lfo.stop(t + 10);
+
+      amp.connect(flt);
+      amp2.connect(flt);
+
+      SND.sends(that.ac, sends, opts.s, flt);
+
+      osc1.start(t);osc1.stop(t + len);
+      osc2.start(t);osc2.stop(t + len);
+    }
+    that.play = that.play.bind(that);
+    return that;
+  }
+
 
 })(window);
