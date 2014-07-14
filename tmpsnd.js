@@ -236,6 +236,7 @@
       var conf = data[1] || {};
       var opts = SND.extend(that.options, conf);
       var osc = that.ac.createOscillator();
+      osc.type = opts.t || "sine";
       var click = that.ac.createOscillator();
       click.type = "square";
       SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.sw);
@@ -292,7 +293,7 @@
       osc.frequency.value = f;
       osc.type = opts.t;
       len = stepTime * (conf.l || 1);
-      var amp = SND.DCA(this.ac, osc, opts.v, t, 0.01, len);
+      var amp = SND.DCA(this.ac, osc, opts.v, t, 0.001, len * 4);
       // portamento/bass drop
       if (opts.dn) {
         SND.AD(osc.frequency, SND.n2f(opts.dn), f, t, 0, len);
