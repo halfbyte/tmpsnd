@@ -10,7 +10,7 @@
   // bind a to b
   function b(a, b) { a.bind(b); }
   // change that to true to log
-  function log() { if (false) { console.log.apply(console, arguments); }}
+  function log() { if (true) { console.log.apply(console, arguments); }}
   function n2f(n) {
     return Math.pow(2, (n - 69) / 12) * 440;
   }
@@ -25,32 +25,34 @@
     } else {
       t.c = new AudioContext();
     }
-    
-    t.sends = SND.initSends(song.sends, t.c);
-    t.instruments = SND.initInstruments(song.instruments,t.c, t.sends);
+    t.initSends()
+    t.initInstruments()
     log('SND.constr', this);
     this.p = this.p.bind(this);
     b(this.p, this);
+    t.playing = false;
     return t;
   };
   
-  SND.initSends = function(sends, c) {
+  SND.prototype.initSends = function() {
     var _sends = [];
-    sends.forEach(function(send, index) {
-      sendObj = new (nTO(send[0]))(c, send[1]);
+    this.song.sends.forEach(function(send, index) {
+      sendObj = new (nTO(send[0]))(this.c, send[1]);
       log(sendObj);
-      sendObj.c(c.destination);
+      sendObj.c(this.c.destination);
       _sends.push(sendObj);
-    });
-    return _sends;
+    }, this);
+    this.sends = _sends;
   }
-  SND.initInstruments = function(instruments,c,sends) {
+  SND.prototype.initInstruments = function() {
+    log(this, this.c)
+    var t = this;
     var _instruments = [];
-    instruments.forEach(function(instr, index) {
-      instrObj = new (nTO(instr[0]))(c, sends, instr[1]);
+    this.song.instruments.forEach(function(instr, index) {
+      instrObj = new (nTO(instr[0]))(this.c, this.sends, instr[1]);
       _instruments.push(instrObj);
-    });
-    return _instruments;    
+    }, this);
+    this.instruments = _instruments;
   };
   
   
@@ -119,6 +121,7 @@
   }
   
   SND.setSends = function(ac, sends, s, out) {
+    if (typeof(s) == 'undefined') return;
     sends.forEach(function(send, i) {
       var amp = ac.createGain();
       amp.gain.value = s[i] || 0.0;
@@ -127,12 +130,17 @@
     });
   };
   SND.prototype.p = function() {
+    if (this.playing == true) return;
+    
     var stepTime = 15 / this.song.cfg.tempo,
         patternTime = stepTime * 64,
         currentPos = 0,
         currentTime = this.c.currentTime;
+        
+    this.playing = true;
+    
     var patternScheduler = (function() {
-      
+      if (this.playing == false) return;
       if (currentTime - this.c.currentTime < (patternTime / 4)) {
         var stepTimes = [];
         for(i=0;i<64;i++) { stepTimes[i] = currentTime + (stepTime * i); }
@@ -152,6 +160,9 @@
     }).bind(this);
     patternScheduler();
   };
+  SND.prototype.s = function() {
+    this.playing = false;
+  }
   // SEND EFFECTS
   SND.DEL = function(ac, cfg) {
     var opts = SND.extend({t: 0.2, fb: 0.4, m: 0.6, f: 800, q: 2}, cfg)
@@ -206,11 +217,11 @@
   }
 
   SND.DIST = function(ac, cfg) {
-    var opts = SND.extend({a: 50}, cfg);
+    var opts = SND.extend({a: 50, m: 1}, cfg);
     this.ac = ac;
     var ws = ac.createWaveShaper();
     this.mix = ac.createGain();
-    ws.buffer = SND.DistCurve(ac, opts.a);
+    ws.curve = SND.DistCurve(ac, opts.a);
     this.mix.gain.value = opts.m;
     ws.c(this.mix);
     this.c= function(node) {
@@ -300,7 +311,6 @@
   SND.Synth = function(ac, sends, options) {
     var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', q: 10, f: 200, fm: 1000, d: 1.0, v: 0.5, s: []});    
     that.play = function(t, stepTime, data) {
-      log("data", data)
       var note = data[0];
       if (note.length) {  // chord!
         note.forEach(function(n) {
@@ -330,6 +340,12 @@
     var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
     that.play = function(t, stepTime, data) {
       var note = data[0];
+      if (note.length) {  // chord!
+        note.forEach(function(n) {
+          that.play(t, stepTime, [n, data[1]]);
+        }, that);
+        return;
+      }
       var opts = SND.extend(that.options, data[1]);
 
       var osc = that.ac.createOscillator();
@@ -343,6 +359,7 @@
         SND.AD(osc.frequency, n2f(opts.dn), f, t, 0, len);
       }
       amp.c(ac.destination);
+      SND.setSends(that.ac, sends, opts.s, amp);
       osc.start(t);osc.stop(t + len);
     }
     b(that.play, that);
@@ -353,26 +370,31 @@
     var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', v:0.5});
     that.play = function(t, stepTime, data) {
       var note = data[0];
+      if (note.length) {  // chord!
+        note.forEach(function(n) {
+          that.play(t, stepTime, [n, data[1]]);
+        }, that);
+        return;
+      }
       var opts = SND.extend(that.options, data[1]);
       var len = stepTime * (data[1].l || 1);
 
       var flt = ac.createBiquadFilter();
       SND.LFO(ac, t, flt.frequency, opts.co, opts.lfo)
-
+      amp = SND.DCA(this.ac, flt, opts.v, t, 0, len);
       for (var i = 0; i < 2; i++) {
-        o = that.ac.createOscillator();
-        g = SND.DCA(this.ac, o, opts.v, t, 0, len);
+        o = that.ac.createOscillator();        
         if (opts.dn) {
           SND.AD(o.frequency, n2f(opts.dn), d, t, 0, len);
         }
         o.frequency.value = n2f(note);
         o.type = opts.t;
         o.detune.value = i * 50;
-        o.c(g);
-        g.c(flt);
+        o.c(flt);
         o.start(t);o.stop(t+len);
       }
-      SND.setSends(that.ac, sends, opts.s, flt);
+      amp.c(ac.destination)
+      SND.setSends(ac, sends, opts.s, amp);
     }
     b(that.play, that);
     return that;

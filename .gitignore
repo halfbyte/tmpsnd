@@ -1,4 +1,7 @@
 tools/*.jar
+tools/*.zip
+tools/COPYING
+tools/README.md
 *.min.js
 out.js
 tmpsnd.min.js
