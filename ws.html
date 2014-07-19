@@ -1,0 +1,90 @@
+
+<script>
+var  cvswidth = 256 * 3;
+window.onload = function() {
+var SND = {};
+  SND.DistCurve = function(ac, k) {
+    var c = new Float32Array(ac.sampleRate);
+    var deg = Math.PI / 180;
+    k *= 100;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / c.length - 1;
+      c[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+    }
+    return c;
+  }
+  SND.DistCurve2 = function(ac, a) {
+    var c  = new Float32Array(ac.sampleRate);
+    var n_samples = c.length;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / n_samples - 1;
+      var y = x < 0 ? -Math.pow(Math.abs(x), a + 0.04) : Math.pow(x, a);
+      c[i] = Math.tanh(y * 2);
+    }
+    return c;
+  }
+  SND.DistCurve3 = function(ac, a) {
+    var c  = new Float32Array(ac.sampleRate);
+    var n_samples = c.length;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / n_samples - 1;
+      var abx = Math.abs(x);
+      var y;
+      if(abx < a) y = abx;
+      else if(abx > a) y = a + (abx - a) / (1 + Math.pow((abx - a) / (1 - a), 2));
+      else if(abx > 1) y = abx;
+      c[i] = (x < 0 ? -1 : 1) * y * (1 / ((a + 1) / 2));
+    }
+    return c;
+  }
+var ac = new AudioContext();
+osc = ac.createOscillator();
+// osc.start(0);
+var ws = ac.createWaveShaper();
+var curve = ws.curve = SND.DistCurve(ac, 0.3);
+osc.connect(ws);
+var an = ac.createAnalyser();
+an.connect(ac.destination);
+ws.connect(an);
+
+var wsc = document.getElementById("ws");
+var val = document.getElementById("values");
+wsc.style.border = "1px solid red";
+wsc.width = curve.length / 100;
+wsc.height = curve.length / 100;
+var ctx = wsc.getContext("2d");
+for (var i = 0; i < curve.length / 100; i++) {
+  ctx.fillRect(i, wsc.height / 2 + (-1.0 * curve[i * 100]) * wsc.height / 2, 1, 1);
+  val.innerHTML += i + ": " + curve[i * 100] + "<br>";
+}
+
+
+
+var array = new Uint8Array(512);
+var fft = new Float32Array(512);
+
+an.frequencyBinCount = 256;
+
+var cvs = document.getElementById("scope");
+cvs.width = cvswidth;
+cvs.height = 256;
+var c = cvs.getContext("2d");
+c.fillStyle = "#000";
+
+function render() {
+  c.clearRect(0, 0, cvs.width, cvs.height);
+  an.getByteTimeDomainData(array);
+  an.getFloatFrequencyData(fft);
+  for (var i = 0; i < array.length; i++) {
+    c.fillRect(i * 2, 128, 0.8, array[i] - 127);
+  }
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+
+}
+</script>
+<canvas id=scope></canvas>
+<canvas id=ws></canvas>
+<pre id=values></pre>

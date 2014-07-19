@@ -48,6 +48,10 @@
     // XXX change that to setTargetAtTime
     p.linearRampToValueAtTime(l, t + d);
   };
+  SND.D = function(p, t, v, k) {
+    p.setValueAtTime(v, t);
+    p.setTargetAtTime(0, t, k);
+  }
   SND.DCA = function(ac, i, v, t, a, d) {
     var g = ac.createGain();
     i.c(g);
@@ -95,6 +99,32 @@
     for (var i = 0; i < c.length; i++) {
       var x = i * 2 / c.length - 1;
       c[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+    }
+    return c;
+  }
+
+  SND.DistCurve2 = function(ac, a) {
+    var c  = new Float32Array(ac.sampleRate);
+    var n_samples = c.length;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / n_samples - 1;
+      var y = x < 0 ? -Math.pow(Math.abs(x), a + 0.04) : Math.pow(x, a);
+      c[i] = Math.tanh(y * 2);
+    }
+    return c;
+  }
+
+  SND.DistCurve3 = function(ac, a) {
+    var c  = new Float32Array(ac.sampleRate);
+    var n_samples = c.length;
+    for (var i = 0; i < c.length; i++) {
+      var x = i * 2 / n_samples - 1;
+      var abx = Math.abs(x);
+      var y;
+      if(abx < a) y = abx;
+      else if(abx > a) y = a + (abx - a) / (1 + Math.pow((abx - a) / (1 - a), 2));
+      else if(abx > 1) y = abx;
+      c[i] = (x < 0 ? -1 : 1) * y * (1 / ((a + 1) / 2));
     }
     return c;
   }
@@ -185,17 +215,18 @@
   }
 
   SND.DIST = function(ac, cfg) {
-    var opts = SND.extend({a: 50}, cfg);
+    var opts = SND.extend({a: 100, m:1.0}, cfg);
     this.ac = ac;
     var ws = ac.createWaveShaper();
     this.mix = ac.createGain();
-    ws.buffer = SND.DistCurve(ac, opts.a);
+    ws.curve = SND.DistCurve(ac, opts.a);
     this.mix.gain.value = opts.m;
     ws.c(this.mix);
     this.c= function(node) {
       this.mix.c(node);
     };
     this.destination = ws;
+    return this;
   }
   
   // INSTRUMENTS
@@ -244,9 +275,11 @@
       var click = that.ac.createOscillator();
       click.type = "square";
       SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.sw);
-      SND.AD(click.frequency, opts.en, 100, t, 0, 0.001);
+      click.frequency.value = 40;
       var amp = SND.DCA(that.ac, osc, opts.v, t, 0.005, opts.d);
-      var ampclick = SND.DCA(that.ac, click, opts.v, t, 0.005, 0.5);
+      var ampclick = ac.createGain();
+      click.c(ampclick);
+      SND.D(ampclick.gain, t, 0.5, 0.0001);
       amp.c(that.ac.destination);
       ampclick.c(that.ac.destination);
       SND.sends(that.ac, sends, opts.s, amp);
@@ -260,9 +293,12 @@
   SND.Snare = function(ac, sends, options) {
     var that = new SND.SProto(ac, sends, options, {sw: 0.05, d:0.1, st:200, en:50,v:0.5, s:[]});
     // snare: drum with a higher fundamental + noise
+    options.f = 286;
     that.d = new SND.Drum(ac, sends, options);
     // less tail
-    options.v /= 4;
+    options.ft = "lowpass"
+    options.f = 3000;
+    options.v *= 0.15;
     that.n = new SND.Noise(ac, sends, options);
     that.play =  function(t, stepTime, data) {
       that.d.play(t, stepTime, data);
@@ -346,6 +382,37 @@
         o.start(t);o.stop(t+len);
       }
       SND.sends(that.ac, sends, opts.s, flt);
+    }
+    b(that.play, that);
+    return that;
+  }
+
+  SND.Organ = function(ac, sends, options) {
+    var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
+    that.play = function(t, stepTime, data) {
+      var note = data[0];
+      var opts = SND.extend(that.options, data[1]);
+      var len = stepTime * (data[1].l || 1);
+
+      var amp = ac.createGain();
+
+      var harmonics = [-1200, 700,   0, 50, 1200, 1900, 2300, 1900, 2200];
+      var gain =      [1.0,   1.5, 1.0, 0.0, 0.0,  0.0,  0.0,  0.0,  0.0];
+      for (var i = 0; i < harmonics.length; i++) {
+        var o = ac.createOscillator();
+        var g = ac.createGain();
+        o.frequency.value = n2f(note);
+        o.detune.value = harmonics[i];
+
+        o.c(g);
+        g.gain.value = gain[i];
+        g.c(amp);
+        o.start(t);o.stop(t+len * 8);
+      }
+
+      SND.D(amp.gain, t, 0.15, len);
+      SND.sends(that.ac, sends, opts.s, amp);
+      // amp.connect(ac.destination);
     }
     b(that.play, that);
     return that;
