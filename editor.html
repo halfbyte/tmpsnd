@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head></head>
+<head>
+  <meta charset="utf-8"/>
+  <title>tmpsnded</title>
+</head>
 <style type="text/css" media="screen">
   body { font-family: 'courier new'; background: #000; color: #f8f8f8;}
+  .highlight {
+    background-color: #111;
+  }
   #pattern-edit {
     overflow: scroll;
-    height: 600px;
+    height: 500px;
     border: 2px solid #800; margin-top: 1em; padding: 1em;
+    clear: both;
   }
   .current-line {
     background: #333;
@@ -17,22 +24,101 @@
     background-color: #ccc;
     font-size: 1em;
   }
+  h1 {
+    margin:0; padding:0;
+    line-height: 0.5em;
+    border-bottom: 1px solid #fff;
+    overflow: hidden;
+  }
+  .export-overlay {
+    width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #ccc;
+  }
+  a:link,a:visited {
+    color: #f00;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #ff0;
+  }
+  .menu ul {
+    list-style-type: none;
+    margin: 10px 0; padding: 0;
+  }
+  .menu ul li {
+    display: inline;
+  }
+  #song-edit th {
+    font-size: 0.7em;
+  }
+  
+  #song-edit td, #song-edit th {
+    border-left: 1px solid #ccc;
+    padding: 2px 10px;
+  }
+  
+  .song-edit-wrapper {
+    height: 300px;
+    overflow: auto;
+  }
+  .instrument-edit-wrapper, .send-edit-wrapper {
+    height: 140px;
+    overflow: auto;
+    margin-top: 1em;
+  }
+  
+  
+  .minibutton {
+    padding: 0px;
+    border: 1px solid #ccc;
+  }
+  .left-half {
+    width: 50%;
+    float: left;
+  }
+  .right-half {
+    width: 50%;
+    float: left;
+  }
+  .line-number {
+    padding-right: 2em;
+  }
   
 </style>
 <body>  
   
   <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-  <script src="song_2.js"></script>
-  <script src="tmpsnd_editor.js"></script>
+  <script src="song_1.js"></script>
+  <script src="tmpsnd.js"></script>
+  <script src="tmpsnd_editor.js" charset="utf-8"></script>
   <h1>tmpsnd.edit</h1>
-  <div id="song-edit"></div>
-  <div>
-    <label>Instrument:<select id="instrument-select"></select></label>
-  </div>  
-  <div id="instrument-edit"></div>
-  <div>
-    <label>Pattern:<select id="pattern-select"></select></label>
+  <nav class="menu"><ul>
+    <li><a href="#" data-cmd="save">SAVE</a>
+    <li><a href="#" data-cmd="export">EXPORT</a>
+    <li><a href="#" data-cmd="playpattern">PLAY PATTERN</a>
+    <li><a href="#" data-cmd="playsong">PLAY SONG</a>
+    <li><a href="#" data-cmd="stop">STOP</a>
+  </ul></nav>
+  <div class="left-half">
+    <div class="song-edit-wrapper">
+      <table id="song-edit"></table>    
+    </div>
+    <button data-cmd="addsongstep">+</button><button data-cmd="removesongstep">-</button>
   </div>
+  
+  <div class="right-half">
+    <div class="instrument-edit-wrapper">
+      <table id="instrument-edit"></table>
+    </div>
+    <button data-cmd="addinstrument">+</button><button data-cmd="removeinstrument">-</button>
+    <div class="send-edit-wrapper">
+      <table id="send-edit"></table>
+    </div>
+    <button data-cmd="addsend">+</button><button data-cmd="removesend">-</button>
+  </div>
+  
+  
+  <select id='instrument-select'></select>
+  <select id='pattern-select'></select>
   <div id="pattern-edit"></div>
   
   

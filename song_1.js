@@ -1,17 +1,17 @@
-snd = new SND({
+window.SONG = {
   cfg: {tempo: 140},
-  sends: [[SND.DEL, {t: 3*15 / 140}],
-          [SND.REV, {t: 10, d: 0.02, m: 1}],
-          [SND.DELREV, {}],
-          [SND.DIST, {a: 0.1, m: 1.0}]],
+  sends: [['SND.DEL', {t: 3*15 / 140}],
+          ['SND.REV', {t: 10, d: 0.02, m: 1}],
+          ['SND.DELREV', {}],
+          ['SND.DIST', {m: 0.5}]],
   instruments: [
-    [SND.Drum, {sw: 0.04, d: 0.2, st: 80, en: 50, v: 0.8, s: [0.0]}],
-    [SND.Synth, {q: 2, d: 0.5, fm: 1800, f: 200, s: [0, 0, 1], t: 'square', v: 0.0}],
-    [SND.Noise, {q: 10, d: 0.04, ft: 'highpass', f: 8000, v: 0.1, s: [0.3, 0.2]}],
-    [SND.Reese, {t: 'sawtooth', lfo: 0.25, co: 8000, v: 0.0, s:[0, 0, 0, 0.3]}],
-    [SND.Sub, {t: 'sine', v: 0.0, d: 2.0, s:[1.0]}],
-    [SND.Snare, {t: 'triangle', sw: 0.00, d: 0.1, st: 100, f: 800, en: 50, v: 0.5, s: [0, 0.0, 0, 0.8]}],
-    [SND.Organ, {t: 'sine', v: 0.0, d: 2.0, s:[0.7, 0.0, 0.0, 1.0]}],
+    ['SND.Drum', {sw: 0.04, d: 0.2, st: 250, en: 50, v: 0.5, s: [0.0, 0, 0, 1.0]}],
+    ['SND.Synth', {q: 2, d: 0.5, fm: 1800, f: 200, s: [0, 0, 1], t: 'square', v: 0.1}],
+    ['SND.Noise', {q: 10, d: 0.04, ft: 'highpass', f: 8000, v: 0.1, s: [0.3, 0.2]}],
+    ['SND.Reese', {t: 'square', lfo: 0.5, co: 8000, v: 0.1, s:[0, 0, 0, 1.0]}],
+    ['SND.Sub', {t: 'sine', v: 0.4, d: 2.0, s:[1.0]}],
+    ['SND.Snare', {t: 'triangle', sw: 0.00, d: 0.1, st: 100, f: 600, en: 50, v: 0.3, s: [0, 0.3]}],
+    ['SND.Organ', {v: 0.3, s: [0, 0, 0, 1.0]}]
   ],
   playlist: [{0:0, 1:1, 2:2, 3:4, 4:6, 5:5, 6:7},{0:0, 1:1, 2:2, 3:4, 4:6,5:5, 6:7}],
   patterns: [
@@ -92,5 +92,4 @@ snd = new SND({
      0,0,0,0,0,0,0,0,
     ]
   ]
-});
-document.getElementById('play').addEventListener('click', function(e) { snd.p(); e.preventDefault(); }, false);
+}
