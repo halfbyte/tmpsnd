@@ -30,6 +30,80 @@ $(function() {
     $instrumentSelector.append("<option value='" + i + "'>" +  i + ": " + inst[0] + "</option>");
   });
 
+  var $fillButton = $('#fill-button');
+  var $fillSelect = $('#fill-select');
+
+  function transpose(p, semitones) {
+    p.forEach(function(e, i) {
+      if (p[i] != 0) {
+        p[i] += semitones;
+      }
+    });
+  }
+
+  function fillNotes(p, int) {
+    p.forEach(function(e, i) {
+      p[i] = !(i%int);
+    });
+  }
+
+  var intervals = {
+    "minor second" :  1,
+    "major second" :  2,
+    "minor third"  :  3,
+    "major third"  :  4,
+    "fourth"       :  5,
+    "dim fifth"    :  6,
+    "fifth"        :  7,
+    "minor sixth"  :  8,
+    "major sixth"  :  9,
+    "minor seventh":  10,
+    "major seventh":  11,
+    "octave"       :  12
+  };
+
+  var fillFunctions = {
+    "four-four": function(p) {
+      fillNotes(p, 4);
+    },
+    "one-four": function(p) {
+      fillNotes(p, 16);
+    },
+    "two-four": function(p) {
+      fillNotes(p, 8);
+    },
+    "shift-down": function(p) {
+      p.splice(0, 0, p.pop())
+    },
+    "shift-up": function(p) {
+      p.splice(p.length, 0, p.shift())
+    },
+  };
+
+  for (var interval in intervals) {
+    (function(itv) {
+      fillFunctions[itv+ " up"] = function(p) {
+        transpose(p, intervals[itv]);
+      }
+      fillFunctions[itv+ " down"] = function(p) {
+        transpose(p, -intervals[itv]);
+      }
+    })(interval);
+  }
+
+  for (var i in fillFunctions) {
+    var o = document.createElement('option');
+    o.value = i;
+    o.innerHTML = i;
+    $fillSelect[0].appendChild(o);
+  }
+
+  $fillButton.on("click", function() {
+    var fill = $fillSelect[0].value;
+    fillFunctions[fill](s.patterns[state.currentPattern]);
+    renderCurrentPattern();
+  });
+
   $('body').keydown(function(e) {
     if (e.keyCode == 40) {
       cmd.advanceLine(1);
@@ -82,6 +156,7 @@ $(function() {
       itv = setInterval(function() {
         var i = Math.floor(SNDinstance.t());
         var line = document.querySelector("#line-" + (i % 64));
+        if (!line) {return;}
         line.classList.add("highlight");
         if (line.previousSibling) {
           line.previousSibling.classList.remove("highlight");
@@ -189,7 +264,9 @@ $(function() {
       if (typeof(cp) == 'undefined') cp = -1;
       s.playlist[pos][inst] = cp + 1;
       if(typeof(s.patterns[cp + 1]) == 'undefined') {
+        var size = 64;
         s.patterns[cp + 1] = new Array(64);
+        for(var i = 0; i < size; i++) {s.patterns[cp+1][i] = 0};
       }
       renderSong();
     },
@@ -381,10 +458,12 @@ $(function() {
     var currentInstrument = s.instruments[state.currentInstrument];
     var instrumentType = currentInstrument[0]
     $patternContainer.html("");
-    pattern.forEach(function(line, i) {
-      var current = i === state.currentLine;
-      $patternContainer.append("<div class='" + (current ? 'current-line' : '') + "' id='line-" + i + "'><span class='line-number'>" + hexline(i) + "</span>" + renderLine(line, instrumentType, current) + "</div>");
-    })
+    if (pattern != undefined) {
+      pattern.forEach(function(line, i) {
+        var current = i === state.currentLine;
+        $patternContainer.append("<div class='" + (current ? 'current-line' : '') + "' id='line-" + i + "'><span class='line-number'>" + hexline(i) + "</span>" + renderLine(line, instrumentType, current) + "</div>");
+      })
+    }
     focusInput();
   }
   

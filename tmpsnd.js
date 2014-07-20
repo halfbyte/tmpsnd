@@ -311,23 +311,33 @@
     return that;
   }
   SND.Drum = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {sw: 0.05, d: 0.1, st: 200, en: 50, v: 0.8, s: []});
+    var that = new SND.SProto(ac, sends, options, {sw: 0.05, k: 0.07, st: 200, en: 50, v: 0.8, s: []});
     that.play = function(t, stepTime, data) {
       var opts = SND.extend(that.options, data[1]);
       var osc = that.ac.createOscillator();
       osc.type = opts.t || "sine";
       var click = that.ac.createOscillator();
       click.type = "square";
-      SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.sw);
       click.frequency.value = 40;
-      var amp = SND.DCA(that.ac, osc, opts.v, t, 0.005, opts.d);
+
+      // SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.k * 8);
+      osc.frequency.value = 90;
+      osc.frequency.setValueAtTime(90, t);
+      osc.frequency.setTargetAtTime(opts.en, t, 0.07)
+
+      var amp = ac.createGain();
+      osc.c(amp);
+      SND.D(amp.gain, t, opts.v, opts.k);
+      amp.c(that.ac.destination);
+
       var ampclick = ac.createGain();
       click.c(ampclick);
-      SND.D(ampclick.gain, t, 0.5, 0.0001);
-      amp.c(that.ac.destination);
+      SND.D(ampclick.gain, t, opts.v * 0.7, 0.0001);
       ampclick.c(that.ac.destination);
+
       SND.setSends(that.ac, sends, opts.s, amp);
-      osc.start(t);osc.stop(t + 0.001 + opts.d);
+
+      osc.start(t);osc.stop(t + 0.001 + opts.d * 4);
       click.start(t);click.stop(t + 0.009);
     }
     b(that.play, that);
@@ -466,9 +476,9 @@
         o.start(t);o.stop(t+len * 8);
       }
 
+      amp.c(ac.destination);
       SND.D(amp.gain, t, 0.15, len / 2);
       SND.setSends(that.ac, sends, opts.s, amp);
-      // amp.connect(ac.destination);
     }
     b(that.play, that);
     return that;

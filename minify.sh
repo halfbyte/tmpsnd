@@ -3,7 +3,7 @@ mkdir -p tools
 if [ ! -f tools/compiler.jar ]; then
     echo " -- tools/compiler.jar not found, now downloading it..."
     wget -O tools/compiler-latest.zip "http://dl.google.com/closure-compiler/compiler-latest.zip"
-    cd tools && unzip compiler-latest.zip
+    cd tools && unzip compiler-latest.zip && cd ..
 fi
 
 cat tmpsnd.js song_1.js > out.js
