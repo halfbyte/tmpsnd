@@ -148,6 +148,23 @@ $(function() {
     currentLine: 0,
     currentColumn: 0
   }
+
+  function highlight_next(selector, count) {
+    var line = document.querySelector(selector);
+    // empty song
+    if (!line) {
+      return;
+    }
+    line.classList.add("highlight");
+    if (line.previousSibling) {
+      line.previousSibling.classList.remove("highlight");
+    } else {
+      var prev = document.querySelector("#line-" + count);
+      if (prev) {
+        line.classList.remove("highlight");
+      }
+    }
+  }
   
   var cmd = {
     itv: null,
@@ -155,17 +172,9 @@ $(function() {
       SNDinstance.p();
       itv = setInterval(function() {
         var i = Math.floor(SNDinstance.t());
-        var line = document.querySelector("#line-" + (i % 64));
-        if (!line) {return;}
-        line.classList.add("highlight");
-        if (line.previousSibling) {
-          line.previousSibling.classList.remove("highlight");
-        } else {
-          var prev = document.querySelector("#line-63");
-          if (prev) {
-            line.classList.remove("highlight");
-          }
-        }
+        highlight_next("#line-" + (i % 64));
+        highlight_next("#pattern-" +  Math.floor(i / 64));
+
       }, 16);
     },
     stop: function(p) {
@@ -413,7 +422,7 @@ $(function() {
           line += "<td>-<a href='#' class='minibutton' data-cmd='sequence_nextpattern' data-param='" + seq  + ":" + i + "'>+</a></td>";
         }
       });
-      lines += "<tr>" + line + "</tr>";
+      lines += "<tr id='pattern-" + seq + "'>" + line + "</tr>";
     })
     $songContainer.append('<tbody>' + lines + "</thead>");
   }
