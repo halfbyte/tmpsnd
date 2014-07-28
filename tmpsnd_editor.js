@@ -160,9 +160,7 @@ $(function() {
       line.previousSibling.classList.remove("highlight");
     } else {
       var prev = document.querySelector("#line-" + count);
-      if (prev) {
-        line.classList.remove("highlight");
-      }
+      prev.classList.remove("highlight");
     }
   }
   
@@ -172,10 +170,18 @@ $(function() {
       SNDinstance.p();
       itv = setInterval(function() {
         var i = Math.floor(SNDinstance.t());
-        highlight_next("#line-" + (i % 64));
-        highlight_next("#pattern-" +  Math.floor(i / 64));
-
+        highlight_next("#line-" + (i % 64), 63);
+        var patternPlaying = Math.floor(i/64) % SNDinstance.song.playlist.length;
+        if (patternPlaying != SNDinstance.currentPos &&
+            patternPlaying != (SNDinstance.currentPos - 1) % SNDinstance.song.playlist.length) {
+          patternPlaying = SNDinstance.currentPos - 1;
+        }
+        highlight_next("#pattern-" +  patternPlaying, SNDinstance.song.playlist.length);
       }, 16);
+    },
+    playpattern: function(p) {
+      SNDinstance.loop = state.currentPattern;
+      this.playsong(p);
     },
     stop: function(p) {
       if (SNDinstance) {

@@ -11,6 +11,7 @@
   function b(a, b) { a.bind(b); }
   // change that to true to log
   function log() { if (false) { console.log.apply(console, arguments); }}
+  function editing() { return true; }
   function n2f(n) {
     return Math.pow(2, (n - 69) / 12) * 440;
   }
@@ -171,29 +172,36 @@
     if (!this.startTime) this.startTime = this.c.currentTime;
     var stepTime = 15 / this.song.cfg.tempo,
         patternTime = stepTime * 64,
-        currentPos = 0,
         currentTime = this.c.currentTime;
-        
+
+    this.currentPos = 0;
+    // the patter to loop, or -1 to just play the track
+    this.loop = this.loop != undefined ? this.loop : -1;
+
     this.playing = true;
-    
+
     var patternScheduler = (function() {
       if (this.playing == false) return;
       if (currentTime - this.c.currentTime < (patternTime / 4)) {
         SND.st = [];
         for(i=0;i<64;i++) { SND.st[i] = currentTime + (stepTime * i); }
-        var cP = this.song.playlist[currentPos];
+        var cP = this.song.playlist[this.currentPos];
         log(cP);
         for (var instrId in cP) {
           if (cP.hasOwnProperty(instrId)) {
             log("scheduling", cP[instrId], "for", instrId)
             var data = this.song.patterns[cP[instrId]];
             this.instruments[instrId].pp(SND.st, stepTime, data); 
-          }          
+          }
         }
-        currentPos = (currentPos + 1) % this.song.playlist.length;
+        if (this.loop == -1) {
+          this.currentPos = (this.currentPos + 1) % this.song.playlist.length;
+        } else {
+          this.currentPos = this.loop;
+        }
         currentTime += patternTime;
-      }      
-      setTimeout(patternScheduler, 40);
+      }
+      setTimeout(patternScheduler, 1000);
     }).bind(this);
     patternScheduler();
   };
