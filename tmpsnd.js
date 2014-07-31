@@ -11,7 +11,7 @@
   function b(a, b) { a.bind(b); }
   // change that to true to log
   function log() { if (false) { console.log.apply(console, arguments); }}
-  function editing() { return true; }
+  function editing() { return false; }
   function n2f(n) {
     return Math.pow(2, (n - 69) / 12) * 440;
   }
@@ -175,8 +175,10 @@
         currentTime = this.c.currentTime;
 
     this.currentPos = 0;
-    // the patter to loop, or -1 to just play the track
-    this.loop = this.loop != undefined ? this.loop : -1;
+    if (editing()) {
+      // the patter to loop, or -1 to just play the track
+      this.loop = this.loop != undefined ? this.loop : -1;
+    }
 
     this.playing = true;
 
@@ -194,10 +196,14 @@
             this.instruments[instrId].pp(SND.st, stepTime, data); 
           }
         }
-        if (this.loop == -1) {
+        if (editing()) {
+          if (this.loop == -1) {
+            this.currentPos = (this.currentPos + 1) % this.song.playlist.length;
+          } else {
+            this.currentPos = this.loop;
+          }
+        } else{
           this.currentPos = (this.currentPos + 1) % this.song.playlist.length;
-        } else {
-          this.currentPos = this.loop;
         }
         currentTime += patternTime;
       }
