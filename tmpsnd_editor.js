@@ -5,15 +5,13 @@ $(function() {
   SEND_TYPES = ['SND.DEL', 'SND.REV', 'SND.DELREV', 'SND.DIST']
   var s = SONG;
 
-//   if (localStorage['tmpsnd.songs.winning']) {
-//     console.log("loading from localstorage");
-//     s = JSON.parse(localStorage['tmpsnd.songs.winning'])
-//   }
-
+  if (localStorage['tmpsnd.songs.lala']) {
+    console.log("loading from localstorage");
+    s = JSON.parse(localStorage['tmpsnd.songs.lala'])
+  }
 
   window.SNDinstance = new SND(s);
-  
-  
+
   var $songContainer = $('#song-edit');
   renderSong();
   var $instrumentContainer = $('#instrument-edit');
@@ -136,8 +134,8 @@ $(function() {
     e.preventDefault();    
   });
   
-  var $patternSelector = $('#pattern-select');
-  $patternSelector.on('change', function(e) { cmd.changepattern($(this).val()); } )
+  var $loopSelector = $('#loop-select');
+  $loopSelector.on('change', function(e) { cmd.changeplaylist($(this).val()); } )
   
   var $patternContainer = $('#pattern-edit');
   
@@ -167,8 +165,12 @@ $(function() {
   var cmd = {
     itv: null,
     playsong: function(p) {
+      SNDinstance.loop = -1;
+      this.playsongcommon(p);
+    },
+    playsongcommon: function(p) {
       SNDinstance.p();
-      itv = setInterval(function() {
+      this.itv = setInterval(function() {
         var i = Math.floor(SNDinstance.t());
         highlight_next("#line-" + (i % 64), 63);
         var patternPlaying = Math.floor(i/64) % SNDinstance.song.playlist.length;
@@ -180,8 +182,8 @@ $(function() {
       }, 16);
     },
     playpattern: function(p) {
-      SNDinstance.loop = state.currentPattern;
-      this.playsong(p);
+      SNDinstance.loop = state.currentPlaylist;
+      this.playsongcommon(p);
     },
     stop: function(p) {
       if (SNDinstance) {
@@ -258,7 +260,11 @@ $(function() {
       s.playlist.pop()
       renderSong();
     },
-    changepattern: function(p) {
+    changeplaylist : function(p) {
+      cmd.submitChange()
+      state.currentPlaylist = parseInt(p, 10);
+    },
+    changepattern : function(p) {
       cmd.submitChange()
       state.currentPattern = parseInt(p, 10);
       renderCurrentPattern();
@@ -287,7 +293,7 @@ $(function() {
     },
     changeinstrument: function(p) {
       state.currentInstrument = parseInt(p,10);
-      renderPatternList();
+      renderLoopSelector();
     },
     advanceLine: function(num) {
       cmd.submitChange()
@@ -314,7 +320,7 @@ $(function() {
     },
     save: function() {
       console.log("Saving", s)
-      localStorage['tmpsnd.songs.winning'] = JSON.stringify(s);
+      localStorage['tmpsnd.songs.lala'] = JSON.stringify(s);
     },
     'export': function() {
       console.log("export")
@@ -400,10 +406,10 @@ $(function() {
 
   
   
-  function renderPatternList() {
-    $patternSelector.html("");
-    s.patterns.forEach(function(p, i) {
-      $patternSelector.append("<option>" +  i + "</option>");
+  function renderLoopSelector() {
+    $loopSelector.html("");
+    s.playlist.forEach(function(p, i) {
+      $loopSelector.append("<option>" +  i + "</option>");
     });
     state.currentPattern = 0;
     state.currentLine = 0;
@@ -541,8 +547,8 @@ $(function() {
     
     
   function init() {
-    cmd.changepattern(0);
-    renderPatternList();
+    cmd.changeplaylist(0);
+    renderLoopSelector();
   }
   
   
