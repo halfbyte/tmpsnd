@@ -1,7 +1,7 @@
 $(function() {
   
   var NOTENAMES = ['C-','C#','D-','D#','E-','F-','F#','G-','G#','A-','A#','B-'];
-  INSTRUMENT_TYPES = ['SND.Drum', 'SND.Snare', 'SND.Noise', 'SND.Synth', 'SND.Sub', 'SND.Reese', 'SND.Organ']
+  INSTRUMENT_TYPES = ['SND.Drum', 'SND.Snare', 'SND.Noise', 'SND.Synth', 'SND.Sub', 'SND.Reese', 'SND.Organ', 'SND.Glitch']
   SEND_TYPES = ['SND.DEL', 'SND.REV', 'SND.DELREV', 'SND.DIST']
   var s = SONG;
 

@@ -371,8 +371,6 @@
       var f = [111 + 175, 111 + 224];
       var o = [];
 
-      console.log(opts.v);
-
       // filter for noise and osc
       var fl = ac.createBiquadFilter();
       // fl.type = "lowpass" // default
@@ -388,7 +386,7 @@
         o[i].type = opts.type
         o[i].frequency.value = f[i];
         o[i].c(amposc);
-        o[i].start(t); o[i].stop(t+0.001 + opts.d * 4);
+        o[i].start(t); o[i].stop(t + opts.d * 4);
       })
 
       // noise
@@ -396,7 +394,7 @@
       smp.buffer = noise;
       var ampnoise = ac.createGain();
       smp.c(ampnoise);
-      SND.D(ampnoise.gain, t, opts.v * 0.7, opts.k * 3);
+      SND.D(ampnoise.gain, t, opts.v, opts.k * 3);
       smp.start(t);smp.stop(t + 0.001 + opts.d);
 
       ampnoise.c(fl);
@@ -453,14 +451,15 @@
       osc.frequency.value = f;
       osc.type = opts.t;
       len = stepTime * (data[1].l || 1);
-      var amp = SND.DCA(this.ac, osc, opts.v, t, 0.05, len * 4);
+      var amp = SND.DCA(ac, osc, opts.v, t, 0.05, len);
+      amp.gain.value = 0;
       // portamento/bass drop
       if (opts.dn) {
         SND.AD(osc.frequency, n2f(opts.dn), f, t, 0, len);
       }
       amp.c(ac.destination);
-      SND.setSends(that.ac, sends, opts.s, amp);
-      osc.start(t);osc.stop(t + len);
+      SND.setSends(ac, sends, opts.s, amp);
+      osc.start(t - 0.001);osc.stop(t + len);
     }
     b(that.play, that);
     return that;
@@ -530,4 +529,37 @@
     b(that.play, that);
     return that;
   }
+
+  SND.Glitch = function(ac, sends, options) {
+    var that = new SND.SProto(ac, sends, options, {r: 0.05, v: 1.0});
+    var noise = SND.NoiseBuffer();
+    that.play = function(t, stepTime, data) {
+      var opts = SND.extend(that.options, data[1]);
+      var len = stepTime * (data[1].l || 1);
+      var source = ac.createBufferSource();
+      var end = t + len;
+      var sources = [];
+      var i = 0;
+      var sink = ac.createGain();
+      sink.gain.setValueAtTime(opts.v, t);
+      while (t < end) {
+        sources[i] = ac.createBufferSource();
+        sources[i].buffer = noise;
+        sources[i].loop = true;
+        sources[i].loopStart = 0;
+        sources[i].loopEnd = Math.random() * 0.05;
+        sources[i].start(t);
+        t += Math.random() * 0.5;
+        t = Math.min(t, end);
+        sources[i].stop(t);
+        sources[i].c(sink);
+        i++;
+      }
+      sink.c(ac.destination);
+      SND.setSends(ac, sends, opts.s, sink);
+    }
+    b(that.play, that);
+    return that;
+  }
 })(window);
+
