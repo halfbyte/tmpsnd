@@ -1,0 +1,73 @@
+<style>
+pre {
+  width: 400px;
+}
+</style>
+<script src="http://cdn.jsdelivr.net/lodash/2.4.1/lodash.backbone.js"></script>
+<script src="song_5.js"></script>
+<script src="tmpsnd.js"></script>
+<script>
+  window.onload = function() {
+    var out = _.clone(window.SONG, true);
+    alert(JSON.stringify(window.SONG).length);
+    // clean patterns
+    for (var pattern = 0; pattern < SONG.patterns.length; pattern++) {
+      for (var note = 0; note < 64; note++) {
+        var n = SONG.patterns[pattern][note];
+        if (_.isArray(n) && _.isEqual(n[1], {})) {
+            out.patterns[pattern][note] = n[0]
+        }
+        if (!n ||
+            n === "" ||
+            n === " " ||
+            _.isArray(n) &&
+            (n[0] === " "|| n[0] === "" || n[0] === 0) &&
+            _.isEqual(n[1], {})) {
+          out.patterns[pattern][note] = 0;
+        }
+
+        if (!n) {
+          out.patterns[pattern][note] = 0;
+        }
+
+        if (n === true) {
+          out.patterns[pattern][note] = 1;
+        }
+
+        if (out.patterns[pattern][note] == false) {
+          out.patterns[pattern][note] = 0;
+        }
+      }
+    }
+    // clean playlist
+    for (var i = 0; i < SONG.playlist.length; i++) {
+      for (var j in SONG.playlist[i]) {
+        if (SONG.playlist[i][j] == 0) {
+          delete SONG.playlist[i][j];
+        }
+      }
+    }
+
+    console.log(out);
+
+    document.body.innerHTML = "<pre>" + JSON.stringify(out, null, 2) + "</pre>"
+
+    var outstr = JSON.stringify(out);
+
+    function z(a, i, n) {
+      Array.prototype.splice.apply(a, [i, 0].concat(new Array(n+1).join('0').split('').map(parseFloat)));
+    }
+
+    // remove quotes in objects
+    outstr = outstr.replace(/\"([a-zA-z]*)\":/g, '$1:');
+
+    var str = "window.SONG2 = " + outstr;
+
+    document.body.innerHTML += "<div style='font-family: courier'>" + str + "</div>"
+
+    eval(str);
+    alert(str.length)
+    var snd = new SND(SONG2);
+    snd.p();
+  }
+</script>
