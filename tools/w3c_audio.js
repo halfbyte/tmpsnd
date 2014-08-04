@@ -163,6 +163,11 @@ AudioContext.prototype.createMediaElementSource = function(mediaElement) {};
 AudioContext.prototype.createMediaStreamSource = function(mediaStream) {};
 
 /**
+ * @return {WaveShaperNode}
+ */
+AudioContext.prototype.createWaveShaper = function() {};
+
+/**
  * @param {number} numberOfChannels
  * @param {number} length
  * @param {number} sampleRate
@@ -273,6 +278,14 @@ AudioParam.prototype.exponentialRampToValueAtTime = function(value, time) {};
  * @param {number} timeConstant
  */
 AudioParam.prototype.setTargetValueAtTime = function(targetValue, time,
+    timeConstant) {};
+
+/**
+ * @param {number} targetValue
+ * @param {number} time
+ * @param {number} timeConstant
+ */
+AudioParam.prototype.setTargetAtTime = function(targetValue, time,
     timeConstant) {};
 
 /**

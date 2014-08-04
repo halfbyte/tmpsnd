@@ -1,11 +1,3 @@
-(function(w) {
-  
-  w.nTO = function(name) {
-    if (typeof(name) !== 'string') return name;
-    var subnames = name.split(".");
-    return window[subnames[0]][subnames[1]];
-  };
-  
   // change that to true to log
   function log() { if (false) { console.log.apply(console, arguments); }}
   function editing() { return false; }
@@ -15,10 +7,10 @@
 
   AudioNode.prototype.c = AudioNode.prototype.connect;
 
-  w.SND = function(song) {
+  function SND(song) {
     var t = this;
     t.song = song;
-    if (w.webkitAudioContext) {
+    if (window.webkitAudioContext) {
       t.c = new webkitAudioContext();
     } else {
       t.c = new AudioContext();
@@ -33,7 +25,7 @@
   SND.prototype.initSends = function() {
     var _sends = [];
     this.song.sends.forEach(function(send, index) {
-      sendObj = new (nTO(send[0]))(this.c, send[1]);
+      sendObj = new send[0](this.c, send[1]);
       log(sendObj);
       sendObj.c(this.c.destination);
       _sends.push(sendObj);
@@ -45,7 +37,7 @@
     var t = this;
     var _instruments = [];
     this.song.instruments.forEach(function(instr, index) {
-      instrObj = new (nTO(instr[0]))(this.c, this.sends, instr[1]);
+      instrObj = new instr[0](this.c, this.sends, instr[1]);
       _instruments.push(instrObj);
     }, this);
     this.instruments = _instruments;
@@ -441,8 +433,8 @@
     }
     return that;
   }
-})(window);
 
 snd = new SND(SONG);
 snd.p();
+
 
