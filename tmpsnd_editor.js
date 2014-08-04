@@ -5,10 +5,10 @@ $(function() {
   SEND_TYPES = ['SND.DEL', 'SND.REV', 'SND.DELREV', 'SND.DIST']
   var s = SONG;
 
-  if (localStorage['tmpsnd.songs.lala']) {
-    console.log("loading from localstorage");
-    s = JSON.parse(localStorage['tmpsnd.songs.lala'])
-  }
+  // if (localStorage['tmpsnd.songs.lala2']) {
+  //   console.log("loading from localstorage");
+  //   s = JSON.parse(localStorage['tmpsnd.songs.lala2'])
+  // }
 
   window.SNDinstance = new SND(s);
 
@@ -320,7 +320,7 @@ $(function() {
     },
     save: function() {
       console.log("Saving", s)
-      localStorage['tmpsnd.songs.lala'] = JSON.stringify(s);
+      localStorage['tmpsnd.songs.lala2'] = JSON.stringify(s);
     },
     'export': function() {
       console.log("export")

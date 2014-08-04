@@ -11,7 +11,7 @@
   function b(a, b) { a.bind(b); }
   // change that to true to log
   function log() { if (false) { console.log.apply(console, arguments); }}
-  function editing() { return true; }
+  function editing() { return false; }
   function n2f(n) {
     return Math.pow(2, (n - 69) / 12) * 440;
   }
@@ -407,20 +407,13 @@
     return that;
   };
   SND.Synth = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', q: 10, f: 200, fm: 1000, d: 1.0, v: 0.5, s: []});    
+    var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', q: 10, f: 200, fm: 1000, d: 1.0, v: 0.5, s: []});
     that.play = function(t, stepTime, data) {
-      var note = data[0];
-      if (note.length) {  // chord!
-        note.forEach(function(n) {
-          that.play(t, stepTime, [n, data[1]]);
-        }, that);
-        return;
-      }
       var opts = SND.extend(that.options, data[1]);
       var osc = that.ac.createOscillator();
       var flt = that.ac.createBiquadFilter();
       flt.Q.value = opts.q;
-      osc.frequency.value = n2f(note);
+      osc.frequency.value = n2f(data[0]);
       osc.type = opts.t;
       len = stepTime * (data[1].l || 1);
       osc.c(flt);
@@ -437,28 +430,14 @@
   SND.Sub = function(ac, sends, options) {
     var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
     that.play = function(t, stepTime, data) {
-      var note = data[0];
-      if (note.length) {  // chord!
-        note.forEach(function(n) {
-          that.play(t, stepTime, [n, data[1]]);
-        }, that);
-        return;
-      }
       var opts = SND.extend(that.options, data[1]);
-
       var osc = that.ac.createOscillator();
-      var f = n2f(note);
-      osc.frequency.value = f;
+      osc.frequency.value = n2f(data[0]);
       osc.type = opts.t;
-      len = stepTime * (data[1].l || 1);
+      len = stepTime * data[1].l;
+      // len = stepTime * (data[1].l || 1);
       var amp = SND.DCA(ac, osc, opts.v, t, 0.05, len);
-      amp.gain.value = 0;
-      // portamento/bass drop
-      if (opts.dn) {
-        SND.AD(osc.frequency, n2f(opts.dn), f, t, 0, len);
-      }
       amp.c(ac.destination);
-      SND.setSends(ac, sends, opts.s, amp);
       osc.start(t - 0.001);osc.stop(t + len);
     }
     b(that.play, that);
@@ -469,12 +448,6 @@
     var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', v:0.5});
     that.play = function(t, stepTime, data) {
       var note = data[0];
-      if (note.length) {  // chord!
-        note.forEach(function(n) {
-          that.play(t, stepTime, [n, data[1]]);
-        }, that);
-        return;
-      }
       var opts = SND.extend(that.options, data[1]);
       var len = stepTime * (data[1].l || 1);
 
@@ -482,7 +455,7 @@
       SND.LFO(ac, t, flt.frequency, opts.co, opts.lfo)
       amp = SND.DCA(this.ac, flt, opts.v, t, 0, len);
       for (var i = 0; i < 2; i++) {
-        o = that.ac.createOscillator();        
+        o = that.ac.createOscillator();
         if (opts.dn) {
           SND.AD(o.frequency, n2f(opts.dn), d, t, 0, len);
         }
@@ -494,37 +467,6 @@
       }
       amp.c(ac.destination)
       SND.setSends(ac, sends, opts.s, amp);
-    }
-    b(that.play, that);
-    return that;
-  }
-
-  SND.Organ = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
-    that.play = function(t, stepTime, data) {
-      var note = data[0];
-      var opts = SND.extend(that.options, data[1]);
-      var len = stepTime * (data[1].l || 1);
-
-      var amp = ac.createGain();
-
-      var harmonics = [-1200, 700,   0, 50, 1200, 1900, 2300, 1900, 2200];
-      var gain =      [1.0,   1.5, 1.0, 0.0, 0.0,  0.0,  0.0,  0.0,  0.0];
-      for (var i = 0; i < harmonics.length; i++) {
-        var o = ac.createOscillator();
-        var g = ac.createGain();
-        o.frequency.value = n2f(note);
-        o.detune.value = harmonics[i];
-
-        o.c(g);
-        g.gain.value = gain[i];
-        g.c(amp);
-        o.start(t);o.stop(t+len * 8);
-      }
-
-      amp.c(ac.destination);
-      SND.D(amp.gain, t, 0.15, len / 2);
-      SND.setSends(that.ac, sends, opts.s, amp);
     }
     b(that.play, that);
     return that;
