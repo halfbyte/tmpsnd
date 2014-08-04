@@ -5,17 +5,7 @@
 </head>
 <body>
   <button id="play">PLAY</buttion>
-  <script src="tmpsnd.js"></script>
   <script src="song_6.js"></script>
+  <script src="tmpsnd.js"></script>
 </body>
-
-<script>
-window.onload = function(){
-  document.getElementById('play').addEventListener('click', function(e) {
-    snd = new SND(SONG);
-    snd.p();
-    e.preventDefault();
-  }, false);
-}
-</script>
 </html>

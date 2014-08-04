@@ -94,21 +94,18 @@
     }
     return SND._noisebuffer;
   }
-  SND.ReverbBuffer = function(ac, options) {
+  SND.ReverbBuffer = function(ac, opts) {
     var i,l;
-    var opts = SND.extend({len: 2, decay: 5}, options)
     var len = ac.sampleRate * opts.l
     var buffer = ac.createBuffer(2, len, ac.sampleRate)
-    var iL = buffer.getChannelData(0)
-    var iR = buffer.getChannelData(1)
-    var decay = opts.decay
     for(i=0,l=buffer.length;i<l;i++) {
-      iL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, opts.d);
-      iR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, opts.d);
+      var s =  Math.pow(1 - i / len, opts.d);
+      buffer.getChannelData(0)[i] = (Math.random() * 2 - 1)*2;
+      buffer.getChannelData(1)[i] = (Math.random() * 2 - 1)*2;
     }
     return buffer;
   }
-  
+
   SND.DistCurve = function(ac, k) {
     var c = new Float32Array(ac.sampleRate);
     var deg = Math.PI / 180;
@@ -119,13 +116,14 @@
     return c;
   }
   SND.setSends = function(ac, sends, s, out) {
-    if (typeof(s) == 'undefined') return;
+    if (s) {
     sends.forEach(function(send, i) {
       var amp = ac.createGain();
       amp.gain.value = s[i] || 0.0;
       out.c(amp);
       amp.c(send.destination);
     });
+    }
   };
 
   // In fractional beat
@@ -183,9 +181,8 @@
     this.playing = false;
   }
   // SEND EFFECTS
-  SND.DEL = function(ac, cfg) {
-    var opts = SND.extend({t: 0.2, fb: 0.4, m: 0.6, f: 800, q: 2}, cfg)
-    this.ac = ac;
+  SND.DEL = function(ac) {
+    var opts = {t: 0.36, fb: 0.4, m: 0.6, f: 800, q: 2};
     this.delay = ac.createDelay();
     this.delay.delayTime.value = opts.t;
     var fb = ac.createGain();
@@ -200,19 +197,18 @@
     this.delay.c(flt);
     flt.c(fb);
     fb.c(this.delay);
-    this.c= function(node) {
+    this.c = function(node) {
       this.mix.c(node);
     };
     this.destination = this.delay;
     return this;
   };
   
-  SND.REV = function(ac, cfg) {
-    var opts = SND.extend({l: 2, d: 5, m: 0.8}, cfg);
-    this.ac = ac;
+  SND.REV = function(ac) {
+    var opts = {d: 0.05, m: 1};
     var cnv = ac.createConvolver();
     this.mix = ac.createGain();
-    cnv.buffer = SND.ReverbBuffer(ac, {l: opts.l, d: opts.d});
+    cnv.buffer = SND.ReverbBuffer(ac, {l: 2, d: opts.d});
     this.mix.gain.value = opts.m;
     cnv.c(this.mix);    
     this.c= function(node) {
@@ -221,26 +217,12 @@
     this.destination = cnv;
     return this;
   }
-  
-  SND.DELREV = function(ac, cfg) {
-    var opts = SND.extend({t:0.2, fb: 0.4, m: 1, f: 800, q: 2, l: 6, d: 5}, cfg);
-    this.del = new SND.DEL(ac, {t: opts.t, fb: opts.fb, m: opts.m, f: opts.f, q: opts.q});
-    this.rev = new SND.REV(ac, {l: opts.l, d: opts.d, m: opts.m});
-    this.del.c(this.rev.destination);
-    this.destination = this.del.destination;
-    this.c= function(node) {
-      this.rev.c(node);
-    };
-    return this;
-  }
 
-  SND.DIST = function(ac, cfg) {
-    var opts = SND.extend({a: 50, m: 1}, cfg);
-    this.ac = ac;
+  SND.DIST = function(ac) {
     var ws = ac.createWaveShaper();
     this.mix = ac.createGain();
-    ws.curve = SND.DistCurve(ac, opts.a);
-    this.mix.gain.value = opts.m;
+    ws.curve = SND.DistCurve(ac, 50);
+    this.mix.gain.value = 0.5;
     ws.c(this.mix);
     this.c= function(node) {
       this.mix.c(node);
@@ -363,7 +345,7 @@
       amposc.c(fl);
 
       SND.setSends(that.ac, sends, opts.s, fl);
-      fl.connect(that.ac.destination);
+      fl.c(that.ac.destination);
     };
     return that;
   };
@@ -431,17 +413,16 @@
   }
 
   SND.Glitch = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {r: 0.05, v: 1.0});
+    var that = new SND.SProto(ac, sends, options);
     var noise = SND.NoiseBuffer();
     that.play = function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
-      var len = stepTime * (data[1].l || 1);
+      var len = 48 * stepTime;
       var source = ac.createBufferSource();
       var end = t + len;
       var sources = [];
       var i = 0;
       var sink = ac.createGain();
-      sink.gain.setValueAtTime(opts.v, t);
+      sink.gain.value = 0.05;
       while (t < end) {
         sources[i] = ac.createBufferSource();
         sources[i].buffer = noise;
@@ -456,9 +437,12 @@
         i++;
       }
       sink.c(ac.destination);
-      SND.setSends(ac, sends, opts.s, sink);
+      SND.setSends(ac, sends, [0.3, 0.8], sink);
     }
     return that;
   }
 })(window);
+
+snd = new SND(SONG);
+snd.p();
 
