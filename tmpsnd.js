@@ -394,7 +394,7 @@
       smp.buffer = noise;
       var ampnoise = ac.createGain();
       smp.c(ampnoise);
-      SND.D(ampnoise.gain, t, opts.v, opts.k * 3);
+      SND.D(ampnoise.gain, t, opts.v * 0.4, opts.k * 3);
       smp.start(t);smp.stop(t + 0.001 + opts.d);
 
       ampnoise.c(fl);
