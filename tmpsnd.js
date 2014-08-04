@@ -6,8 +6,6 @@
     return window[subnames[0]][subnames[1]];
   };
   
-  // bind a to b
-  function b(a, b) { a.bind(b); }
   // change that to true to log
   function log() { if (false) { console.log.apply(console, arguments); }}
   function editing() { return false; }
@@ -28,9 +26,6 @@
     t.initSends()
     t.initInstruments()
     log('SND.constr', this);
-    this.p = this.p.bind(this);
-    b(this.p, this);
-    b(this.t, this);
     t.playing = false;
     return t;
   };
@@ -55,8 +50,6 @@
     }, this);
     this.instruments = _instruments;
   };
-  
-  
   SND.extend = function(o, o2) {
     var o1 = {};
     o2 = o2 || {};
@@ -210,7 +203,6 @@
     this.c= function(node) {
       this.mix.c(node);
     };
-    b(this.c, this);
     this.destination = this.delay;
     return this;
   };
@@ -296,7 +288,6 @@
       amp.c(that.ac.destination);      
       smp.start(t);smp.stop(t + 0.001 + opts.d);
     }
-    b(that.play, that);
     return that;
   }
   SND.Drum = function(ac, sends, options) {
@@ -329,7 +320,6 @@
       osc.start(t);osc.stop(t + 0.001 + opts.d * 4);
       click.start(t);click.stop(t + 0.009);
     }
-    b(that.play, that);
     return that;
   };
 
@@ -375,7 +365,6 @@
       SND.setSends(that.ac, sends, opts.s, fl);
       fl.connect(that.ac.destination);
     };
-    b(that.play, that);
     return that;
   };
   SND.Synth = function(ac, sends, options) {
@@ -395,7 +384,6 @@
       SND.AD(flt.frequency, opts.f, opts.f + opts.fm, t, 0.01, len * opts.d);
       osc.start(t);osc.stop(t + len);
     }
-    b(that.play, that);
     return that;
   }
 
@@ -412,7 +400,6 @@
       amp.c(ac.destination);
       osc.start(t - 0.001);osc.stop(t + len);
     }
-    b(that.play, that);
     return that;
   }
 
@@ -440,7 +427,6 @@
       amp.c(ac.destination)
       SND.setSends(ac, sends, opts.s, amp);
     }
-    b(that.play, that);
     return that;
   }
 
@@ -472,7 +458,6 @@
       sink.c(ac.destination);
       SND.setSends(ac, sends, opts.s, sink);
     }
-    b(that.play, that);
     return that;
   }
 })(window);
