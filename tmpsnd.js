@@ -6,7 +6,6 @@
     return window[subnames[0]][subnames[1]];
   };
   
-  
   // bind a to b
   function b(a, b) { a.bind(b); }
   // change that to true to log
@@ -84,7 +83,7 @@
   };
   SND.LFO = function(ac, t, p, g, f)  {
     var o = ac.createOscillator();
-    o.frequency.value = f * (140 / 120); // fetch tempo here.
+    o.frequency.value = f * (125 / 120); // fetch tempo here.
     var s = ac.createGain();
     s.gain.value = g;
     o.c(s);
@@ -126,33 +125,6 @@
     }
     return c;
   }
-
-  SND.DistCurve2 = function(ac, a) {
-    var c  = new Float32Array(ac.sampleRate);
-    var n_samples = c.length;
-    for (var i = 0; i < c.length; i++) {
-      var x = i * 2 / n_samples - 1;
-      var y = x < 0 ? -Math.pow(Math.abs(x), a + 0.04) : Math.pow(x, a);
-      c[i] = Math.tanh(y * 2);
-    }
-    return c;
-  }
-
-  SND.DistCurve3 = function(ac, a) {
-    var c  = new Float32Array(ac.sampleRate);
-    var n_samples = c.length;
-    for (var i = 0; i < c.length; i++) {
-      var x = i * 2 / n_samples - 1;
-      var abx = Math.abs(x);
-      var y;
-      if(abx < a) y = abx;
-      else if(abx > a) y = a + (abx - a) / (1 + Math.pow((abx - a) / (1 - a), 2));
-      else if(abx > 1) y = abx;
-      c[i] = (x < 0 ? -1 : 1) * y * (1 / ((a + 1) / 2));
-    }
-    return c;
-  }
-
   SND.setSends = function(ac, sends, s, out) {
     if (typeof(s) == 'undefined') return;
     sends.forEach(function(send, i) {
@@ -165,13 +137,13 @@
 
   // In fractional beat
   SND.prototype.t = function() {
-    return (this.c.currentTime - this.startTime) * (this.song.cfg.tempo / 60) * 4;
+    return (this.c.currentTime - this.startTime) * (125/ 60) * 4;
   }
 
   SND.prototype.p = function() {
     if (this.playing == true) return;
     if (!this.startTime) this.startTime = this.c.currentTime;
-    var stepTime = 15 / this.song.cfg.tempo,
+    var stepTime = 15 / 125,
         patternTime = stepTime * 64,
         currentTime = this.c.currentTime;
 
