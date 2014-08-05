@@ -6,15 +6,14 @@
   }
 
   AudioNode.prototype.c = AudioNode.prototype.connect;
+  // this is ONE byte.
+  AudioContext.prototype.c = AudioContext.prototype.createOscillator;
+
+  ac = new AudioContext();
 
   function SND(song) {
     var t = this;
     t.song = song;
-    if (window.webkitAudioContext) {
-      t.c = new webkitAudioContext();
-    } else {
-      t.c = new AudioContext();
-    }
     t.initSends()
     t.initInstruments()
     log('SND.constr', this);
@@ -23,24 +22,19 @@
   };
 
   SND.prototype.initSends = function() {
-    var _sends = [];
-    this.song.sends.forEach(function(send, index) {
-      sendObj = new send[0](this.c, send[1]);
-      log(sendObj);
-      sendObj.c(this.c.destination);
-      _sends.push(sendObj);
+    // GLOBAL !
+    _sends = [];
+    sends.forEach(function(send, index) {
+      var o = new send[0](send[1]);
+      _sends.push(o);
+      o.c(ac.destination);
     }, this);
-    this.sends = _sends;
   }
   SND.prototype.initInstruments = function() {
-    log(this, this.c)
-    var t = this;
-    var _instruments = [];
-    this.song.instruments.forEach(function(instr, index) {
-      instrObj = new instr[0](this.c, this.sends, instr[1]);
-      _instruments.push(instrObj);
+    this.instruments = [];
+    instruments.forEach(function(instr, index) {
+      this.instruments.push(new instr[0](instr[1]));
     }, this);
-    this.instruments = _instruments;
   };
   SND.extend = function(o, o2) {
     var o1 = {};
@@ -60,22 +54,13 @@
     p.setValueAtTime(v, t);
     p.setTargetAtTime(0, t, k);
   }
-  SND.DCA = function(ac, i, v, t, a, d) {
+  SND.DCA = function(i, v, t, a, d) {
     var g = ac.createGain();
     i.c(g);
     SND.AD(g.gain, 0, v, t, a, d);
     return g;
   };
-  SND.LFO = function(ac, t, p, g, f)  {
-    var o = ac.createOscillator();
-    o.frequency.value = f * (125 / 120); // fetch tempo here.
-    var s = ac.createGain();
-    s.gain.value = g;
-    o.c(s);
-    s.c(p);
-    o.start(t); o.stop(t + 10); // long tail
-  }
-  SND.NoiseBuffer = function(ac) {
+  SND.NoiseBuffer = function() {
     var i,l;
     if (!SND._noisebuffer) {
       SND._noisebuffer = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate / 2);
@@ -86,7 +71,7 @@
     }
     return SND._noisebuffer;
   }
-  SND.ReverbBuffer = function(ac, opts) {
+  SND.ReverbBuffer = function(opts) {
     var i,l;
     var len = ac.sampleRate * opts.l
     var buffer = ac.createBuffer(2, len, ac.sampleRate)
@@ -98,7 +83,7 @@
     return buffer;
   }
 
-  SND.DistCurve = function(ac, k) {
+  SND.DistCurve = function(k) {
     var c = new Float32Array(ac.sampleRate);
     var deg = Math.PI / 180;
     for (var i = 0; i < c.length; i++) {
@@ -107,9 +92,9 @@
     }
     return c;
   }
-  SND.setSends = function(ac, sends, s, out) {
+  SND.setSends = function(s, out) {
     if (s) {
-    sends.forEach(function(send, i) {
+    _sends.forEach(function(send, i) {
       var amp = ac.createGain();
       amp.gain.value = s[i] || 0.0;
       out.c(amp);
@@ -120,15 +105,15 @@
 
   // In fractional beat
   SND.prototype.t = function() {
-    return (this.c.currentTime - this.startTime) * (125/ 60) * 4;
+    return (ac.currentTime - this.startTime) * (125/ 60) * 4;
   }
 
   SND.prototype.p = function() {
     if (this.playing == true) return;
-    if (!this.startTime) this.startTime = this.c.currentTime;
+    if (!this.startTime) this.startTime = ac.currentTime;
     var stepTime = 15 / 125,
         patternTime = stepTime * 64,
-        currentTime = this.c.currentTime;
+        currentTime = ac.currentTime;
 
     this.currentPos = 0;
     if (editing()) {
@@ -142,7 +127,7 @@
 
     var patternScheduler = (function() {
       if (this.playing == false) return;
-      if (currentTime - this.c.currentTime < (patternTime / 4)) {
+      if (currentTime - ac.currentTime < (patternTime / 4)) {
         SND.st = [];
         for(i=0;i<64;i++) { SND.st[i] = currentTime + (stepTime * i); }
         var cP = this.song.playlist[this.currentPos];
@@ -173,7 +158,7 @@
     this.playing = false;
   }
   // SEND EFFECTS
-  SND.DEL = function(ac) {
+  SND.DEL = function() {
     var opts = {t: 0.36, fb: 0.4, m: 0.6, f: 800, q: 2};
     this.delay = ac.createDelay();
     this.delay.delayTime.value = opts.t;
@@ -196,11 +181,11 @@
     return this;
   };
   
-  SND.REV = function(ac) {
+  SND.REV = function() {
     var opts = {d: 0.05, m: 1};
     var cnv = ac.createConvolver();
     this.mix = ac.createGain();
-    cnv.buffer = SND.ReverbBuffer(ac, {l: 2, d: opts.d});
+    cnv.buffer = SND.ReverbBuffer({l: 2, d: opts.d});
     this.mix.gain.value = opts.m;
     cnv.c(this.mix);    
     this.c= function(node) {
@@ -210,10 +195,10 @@
     return this;
   }
 
-  SND.DIST = function(ac) {
+  SND.DIST = function() {
     var ws = ac.createWaveShaper();
     this.mix = ac.createGain();
-    ws.curve = SND.DistCurve(ac, 50);
+    ws.curve = SND.DistCurve(50);
     this.mix.gain.value = 0.5;
     ws.c(this.mix);
     this.c= function(node) {
@@ -225,9 +210,8 @@
   
   // INSTRUMENTS
   
-  SND.SProto = function(ac, sends, options, defaults) {
+  SND.SProto = function(options, defaults) {
     this.ac = ac;
-    this.sends = sends;
     this.options = SND.extend(defaults, options);
     return this;
   };
@@ -242,87 +226,78 @@
       }
     }, this);
   };
-  SND.Noise = function(ac, sends, options) {
-    log("INIT NOISE", ac, sends, options)
-    var that = new SND.SProto(ac, sends, options, {q: 10, d: 0.05, ft: 'highpass', f: 8000, v: 0.1, s: []});
-    var noise = SND.NoiseBuffer(ac);
-    var opts = that.options;
-    that.play = function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
+  SND.Noise = function() {
+    var that = new SND.SProto();
+    var noise = SND.NoiseBuffer();
+    that.play = function(t) {
       var smp = ac.createBufferSource();
       var flt = ac.createBiquadFilter();
       smp.c(flt);
-      var amp = SND.DCA(that.ac, flt, opts.v, t, 0.001, opts.d);
-      flt.frequency.value = opts.f;
-      flt.type = opts.ft;
-      flt.Q.value = opts.q;
+      var amp = SND.DCA(flt, 0.1, t, 0.001, 0.06);
+      flt.frequency.value = 8000;
+      flt.type = "highpass";
+      flt.Q.value = 8;
       smp.buffer = noise;
       smp.c(amp);
-      SND.setSends(that.ac, sends, opts.s, amp);
-      amp.c(that.ac.destination);      
-      smp.start(t);smp.stop(t + 0.001 + opts.d);
+      SND.setSends([0.3], amp);
+      amp.c(ac.destination);
+      smp.start(t);smp.stop(t + 0.06);
     }
     return that;
   }
-  SND.Drum = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {sw: 0.05, k: 0.07, st: 200, en: 50, v: 0.8, s: []});
-    that.play = function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
-      var osc = that.ac.createOscillator();
-      osc.type = opts.t || "sine";
-      var click = that.ac.createOscillator();
+  SND.Drum = function(options) {
+    var that = new SND.SProto(options);
+    that.play = function(t) {
+      var osc = ac.c();
+      var click = ac.c();
       click.type = "square";
       click.frequency.value = 40;
 
       // SND.AD(osc.frequency, opts.en, opts.st, t, 0, opts.k * 8);
-      osc.frequency.value = opts.st;
-      osc.frequency.setValueAtTime(opts.st, t);
-      osc.frequency.setTargetAtTime(opts.en, t+0.001, opts.k)
+      osc.frequency.value = 90;
+      osc.frequency.setValueAtTime(90, t);
+      osc.frequency.setTargetAtTime(50, t+0.001, 0.03)
 
-      var amp = ac.createGain();
-      osc.c(amp);
-      SND.D(amp.gain, t, opts.v, opts.k);
-      amp.c(that.ac.destination);
+      function d(o, e){
+        var amp = ac.createGain();
+        o.c(amp);
+        SND.D(amp.gain, t, 1.0, e);
+        amp.c(ac.destination);
+      }
 
-      var ampclick = ac.createGain();
-      click.c(ampclick);
-      SND.D(ampclick.gain, t, opts.v, 0.005);
-      ampclick.c(that.ac.destination);
+      d(osc, 0.03)
+      d(click, 0.005)
 
-      SND.setSends(that.ac, sends, opts.s, amp);
-
-      osc.start(t);osc.stop(t + 0.001 + opts.d * 4);
+      osc.start(t);osc.stop(t + 0.2);
       click.start(t);click.stop(t + 0.009);
     }
     return that;
   };
 
-  SND.Snare = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {type: 'triangle', f: 3000, sw: 0.05, d:0.1,v:1.0, k:0.01, s:[]});
+  SND.Snare = function(options) {
+    var that = new SND.SProto(options);
+    var noise = SND.NoiseBuffer();
 
-    var noise = SND.NoiseBuffer(ac);
-
-    that.play =  function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
+    that.play =  function(t) {
       var f = [111 + 175, 111 + 224];
       var o = [];
 
       // filter for noise and osc
       var fl = ac.createBiquadFilter();
       // fl.type = "lowpass" // default
-      fl.frequency.value = opts.f;
+      fl.frequency.value = 3000;
 
-      //.amp for oscillator
+      // amp for oscillator
       var amposc = ac.createGain();
-      SND.D(amposc.gain, t, opts.v, opts.k);
+      SND.D(amposc.gain, t, 0.4, 0.015);
 
       // two osc
       f.forEach(function(e, i) {
-        o[i] = ac.createOscillator();
-        o[i].type = opts.type
+        o[i] = ac.c();
+        o[i].type = "triangle";
         o[i].frequency.value = f[i];
         o[i].c(amposc);
-        o[i].start(t); o[i].stop(t + opts.d * 4);
+        o[i].start(t); o[i].stop(t + 0.4);
       })
 
       // noise
@@ -330,82 +305,81 @@
       smp.buffer = noise;
       var ampnoise = ac.createGain();
       smp.c(ampnoise);
-      SND.D(ampnoise.gain, t, opts.v * 0.4, opts.k * 3);
-      smp.start(t);smp.stop(t + 0.001 + opts.d);
+      SND.D(ampnoise.gain, t, 0.24, 0.045);
+      smp.start(t);smp.stop(t + 0.1);
 
       ampnoise.c(fl);
       amposc.c(fl);
 
-      SND.setSends(that.ac, sends, opts.s, fl);
-      fl.c(that.ac.destination);
+      SND.setSends([0.3, 0.2], fl);
+      fl.c(ac.destination);
     };
     return that;
   };
-  SND.Synth = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', q: 10, f: 200, fm: 1000, d: 1.0, v: 0.5, s: []});
+  SND.Synth = function() {
+    var that = new SND.SProto();
     that.play = function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
-      var osc = that.ac.createOscillator();
-      var flt = that.ac.createBiquadFilter();
-      flt.Q.value = opts.q;
+      var osc = ac.c();
+      var flt = ac.createBiquadFilter();
+      flt.Q.value = 2;
       osc.frequency.value = n2f(data[0]);
-      osc.type = opts.t;
+      osc.type = "square"
       len = stepTime * (data[1].l || 1);
       osc.c(flt);
-      var amp = SND.DCA(this.ac, flt, opts.v, t, 0.01, len);
-      SND.setSends(that.ac, sends, opts.s, amp);
+      var amp = SND.DCA(flt, data[1].v || 0.1, t, 0.01, len);
+      SND.setSends([0.5, 0.6], amp);
       amp.c(ac.destination);
-      SND.AD(flt.frequency, opts.f, opts.f + opts.fm, t, 0.01, len * opts.d);
+      SND.AD(flt.frequency, 200, 2000, t, 0.01, len / 2);
       osc.start(t);osc.stop(t + len);
     }
     return that;
   }
 
-  SND.Sub = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {t: 'sine', v:0.5});
+  SND.Sub = function(options) {
+    var that = new SND.SProto(options);
     that.play = function(t, stepTime, data) {
-      var opts = SND.extend(that.options, data[1]);
-      var osc = that.ac.createOscillator();
+      var osc = ac.c();
       osc.frequency.value = n2f(data[0]);
-      osc.type = opts.t;
       len = stepTime * data[1].l;
       // len = stepTime * (data[1].l || 1);
-      var amp = SND.DCA(ac, osc, opts.v, t, 0.05, len);
+      var amp = SND.DCA(osc, 0.6, t, 0.05, len);
       amp.c(ac.destination);
-      osc.start(t - 0.001);osc.stop(t + len);
+      osc.start(t);osc.stop(t + len);
     }
     return that;
   }
 
-  SND.Reese = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options, {t: 'sawtooth', v:0.5});
+  SND.Reese = function() {
+    var that = new SND.SProto();
     that.play = function(t, stepTime, data) {
       var note = data[0];
-      var opts = SND.extend(that.options, data[1]);
-      var len = stepTime * (data[1].l || 1);
+      var len = stepTime * data[1].l;
 
       var flt = ac.createBiquadFilter();
-      SND.LFO(ac, t, flt.frequency, opts.co, opts.lfo)
-      amp = SND.DCA(this.ac, flt, opts.v, t, 0, len);
+      var o = ac.c();
+      o.frequency.value = data[1].f * (125 / 120); // fetch tempo here.
+      var s = ac.createGain();
+      s.gain.value = 8000;
+      o.c(s);
+      s.c(flt.frequency);
+      o.start(t); o.stop(t + 10); // long tail
+      amp = SND.DCA(flt, data[1].v, t, 0, len);
       for (var i = 0; i < 2; i++) {
-        o = that.ac.createOscillator();
-        if (opts.dn) {
-          SND.AD(o.frequency, n2f(opts.dn), d, t, 0, len);
-        }
+        o = ac.c();
         o.frequency.value = n2f(note);
-        o.type = opts.t;
+        o.type = "square";
         o.detune.value = i * 50;
         o.c(flt);
         o.start(t);o.stop(t+len);
       }
       amp.c(ac.destination)
-      SND.setSends(ac, sends, opts.s, amp);
+      SND.setSends([0,0.4,1], amp);
     }
     return that;
   }
 
-  SND.Glitch = function(ac, sends, options) {
-    var that = new SND.SProto(ac, sends, options);
+  SND.Glitch = function(options) {
+    var that = new SND.SProto(options);
     var noise = SND.NoiseBuffer();
     that.play = function(t, stepTime, data) {
       var len = 48 * stepTime;
@@ -429,12 +403,8 @@
         i++;
       }
       sink.c(ac.destination);
-      SND.setSends(ac, sends, [0.3, 0.8], sink);
+      SND.setSends([0.3, 0.8], sink);
     }
     return that;
   }
-
-snd = new SND(SONG);
-snd.p();
-
 

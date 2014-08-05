@@ -7,6 +7,7 @@ if [ ! -f tools/compiler.jar ]; then
 fi
 
 cat song_6.js tmpsnd.js > out.js
+echo "snd = new SND(SONG); snd.p();" >> out.js
 
 echo " -- running the closure compiler..."
 java -jar tools/compiler.jar --js=out.js --js_output_file=./tmpsnd.min.js --compilation_level=ADVANCED_OPTIMIZATIONS --externs ./tools/w3c_audio.js
